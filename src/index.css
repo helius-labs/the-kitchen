@@ -14,3 +14,8 @@ code {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+ /*.wallet-adapter-button {
+  background-color: #E84125 !important;
+  border-radius: 20px !important;
+}*/
