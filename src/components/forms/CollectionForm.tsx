@@ -260,7 +260,7 @@ export default function CollectionForm() {
       await bundlr.ready();
       const tagsForImage = [{ name: "Content-Type", value: file.type }];
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-
+      let jsonUri = "";
     try { 
       const imagePrice = await bundlr.getPrice(file!.size);
       const funds = await bundlr.fund(imagePrice, 3)
@@ -302,7 +302,7 @@ export default function CollectionForm() {
       const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
       await upload.sign()
       const result = await upload.upload()
-      const jsonUri = `https://arweave.net/${result.id}`
+      jsonUri = `https://arweave.net/${result.id}`
       if(jsonUri) { 
         setAlert({
           type: "success",
@@ -316,7 +316,6 @@ export default function CollectionForm() {
           ),
         });
       }
-      console.log(jsonUri)
       setJsonUri(jsonUri)
     } catch (e) {
       console.log(e)
@@ -330,7 +329,7 @@ export default function CollectionForm() {
       });
       return;
     }
-      const txn = await createCollection(publicKey, jsonUri ?? "");
+      const txn = await createCollection(publicKey, jsonUri);
       if (!txn) {
         setAlert({
           type: "failure",

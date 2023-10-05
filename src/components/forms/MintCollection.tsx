@@ -199,6 +199,7 @@ export default function MintToCollection() {
     await window.solana.connect();
     const provider = new PhantomWalletAdapter();
     await provider.connect();
+    let jsonUri = ""; 
     try {
       const bundlrURL =
         network === "mainnet"
@@ -241,7 +242,7 @@ export default function MintToCollection() {
       );
       await upload.sign();
       const result = await upload.upload();
-      const jsonUri = `https://arweave.net/${result.id}`;
+     jsonUri = `https://arweave.net/${result.id}`
       setJson(jsonUri);
     } catch (e) {
       setAlert({
@@ -274,7 +275,7 @@ export default function MintToCollection() {
                 collectionSymbol,
                 singleAddress.toString(),
                 royalties,
-                json
+                jsonUri
               )
           );
       } else {
