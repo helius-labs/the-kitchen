@@ -190,6 +190,7 @@ export default function CollectionForm() {
       });
       return;
     }
+    let jsonUri = "";
     try {
       await window.solana.connect();
       const provider = new PhantomWalletAdapter();
@@ -214,7 +215,6 @@ export default function CollectionForm() {
       const imageUpload = bundlr.createTransaction(fileBuffer, { tags })
       await imageUpload.sign()
       const imageResult = await imageUpload.upload()
-      console.log(imageResult)
       const imageUri = `https://arweave.net/${imageResult.id}`
       setImage(imageUri);
       const jsonData = generateJSONData(
@@ -235,8 +235,7 @@ export default function CollectionForm() {
       const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
       await upload.sign()
       const result = await upload.upload()
-      console.log(result)
-      const jsonUri = `https://arweave.net/${result.id}`
+      jsonUri = `https://arweave.net/${result.id}`
       setJson(jsonUri);
     } catch (e) {
       setAlert({
@@ -267,7 +266,7 @@ export default function CollectionForm() {
                 collectionSymbol,
                 singleAddress.toString(),
                 royalties,
-                json
+                jsonUri
               )
           );
       } else {
