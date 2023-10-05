@@ -138,20 +138,20 @@ export default function CollectionForm() {
     }
   }
 
-  async function fileToBuffer(file: File): Promise<Buffer> {
+  const readFileAsBuffer = (file: File): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const buffer = Buffer.from(arrayBuffer);
-        resolve(buffer);
+        if (event.target?.result) {
+          resolve(Buffer.from(event.target.result as ArrayBuffer));
+        } else {
+          reject(new Error("Failed to read the file."));
+        }
       };
-      reader.onerror = (error) => {
-        reject(error);
-      };
+      reader.onerror = (error) => reject(error);
       reader.readAsArrayBuffer(file);
     });
-  }
+  };
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     if (activeTab !== "mint-details") {
@@ -207,11 +207,14 @@ export default function CollectionForm() {
         providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
       await bundlr.ready();
-      const fil = await fileToBuffer(file);
+      const fileBuffer = await readFileAsBuffer(file);
       const tags = [{ name: "Content-Type", value: file.type }];
-      const imageUpload = bundlr.createTransaction(fil, { tags })
-      imageUpload.sign()
+      const imagePrice = await bundlr.getPrice(file!.size);
+      const fund = await bundlr.fund(imagePrice, 3)
+      const imageUpload = bundlr.createTransaction(fileBuffer, { tags })
+      await imageUpload.sign()
       const imageResult = await imageUpload.upload()
+      console.log(imageResult)
       const imageUri = `https://arweave.net/${imageResult.id}`
       setImage(imageUri);
       const jsonData = generateJSONData(
@@ -223,12 +226,16 @@ export default function CollectionForm() {
         attributes,
         creators,
         collectionSymbol,
-        royalties
+        royalties,
+        publicKey.toString()
       );
+      const jsonPrice = await bundlr.getPrice(JSON.stringify(jsonData, null, 2).length);
+      const funds = await bundlr.fund(jsonPrice, 3)
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
       const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
-      upload.sign()
+      await upload.sign()
       const result = await upload.upload()
+      console.log(result)
       const jsonUri = `https://arweave.net/${result.id}`
       setJson(jsonUri);
     } catch (e) {
@@ -764,7 +771,7 @@ export default function CollectionForm() {
       {showAlert && latestSuccessfulSignature && (
         <Alert
           color="success"
-          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
+          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 m-auto z-50"
           onDismiss={() => {
             setShowAlert(false);
             setSuccessfulMints(0);

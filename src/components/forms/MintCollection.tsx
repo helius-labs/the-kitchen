@@ -143,23 +143,24 @@ export default function MintToCollection() {
     }
   }
 
-  async function fileToBuffer(file: File): Promise<Buffer> {
+  const readFileAsBuffer = (file: File): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const buffer = Buffer.from(arrayBuffer);
-        resolve(buffer);
+        if (event.target?.result) {
+          resolve(Buffer.from(event.target.result as ArrayBuffer));
+        } else {
+          reject(new Error("Failed to read the file."));
+        }
       };
-      reader.onerror = (error) => {
-        reject(error);
-      };
+      reader.onerror = (error) => reject(error);
       reader.readAsArrayBuffer(file);
     });
-  }
+  };
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
+    setMintButtonClicked(true);
     if (activeTab !== "mint-details") {
       return;
     }
@@ -195,10 +196,10 @@ export default function MintToCollection() {
       });
       return;
     }
+    await window.solana.connect();
+    const provider = new PhantomWalletAdapter();
+    await provider.connect();
     try {
-      await window.solana.connect();
-      const provider = new PhantomWalletAdapter();
-      await provider.connect();
       const bundlrURL =
         network === "mainnet"
           ? "https://node1.irys.xyz"
@@ -212,12 +213,14 @@ export default function MintToCollection() {
         providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
       await bundlr.ready();
-      const fil = await fileToBuffer(file);
+      const fileBuffer = await readFileAsBuffer(file);
+      const imagePrice = await bundlr.getPrice(file!.size);
+      const fund = await bundlr.fund(imagePrice, 3);
       const tags = [{ name: "Content-Type", value: file.type }];
-      const imageUpload = bundlr.createTransaction(fil, { tags })
-      imageUpload.sign()
-      const imageResult = await imageUpload.upload()
-      const imageUri = `https://arweave.net/${imageResult.id}`
+      const imageUpload = bundlr.createTransaction(fileBuffer, { tags });
+      await imageUpload.sign();
+      const imageResult = await imageUpload.upload();
+      const imageUri = `https://arweave.net/${imageResult.id}`;
       setImage(imageUri);
       const jsonData = generateJSONData(
         file,
@@ -228,13 +231,17 @@ export default function MintToCollection() {
         attributes,
         creators,
         collectionSymbol,
-        royalties
+        royalties,
+        publicKey.toString()
       );
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-      const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
-      upload.sign()
-      const result = await upload.upload()
-      const jsonUri = `https://arweave.net/${result.id}`
+      const upload = bundlr.createTransaction(
+        JSON.stringify(jsonData, null, 2),
+        { tags: tagsForJson }
+      );
+      await upload.sign();
+      const result = await upload.upload();
+      const jsonUri = `https://arweave.net/${result.id}`;
       setJson(jsonUri);
     } catch (e) {
       setAlert({
@@ -282,12 +289,14 @@ export default function MintToCollection() {
       for (let promiseFunction of generator) {
         try {
           const result = await promiseFunction();
+          console.log("Minting API Response:", result);
           successfulMintsCounter++;
           if (result.signature) {
             setLatestSuccessfulSignature(result.signature);
             setSuccessfulSignatures((prev) => [...prev, result.signature]);
           }
         } catch (error) {
+          console.log("Minting API Error:", error);
         } finally {
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
@@ -789,7 +798,7 @@ export default function MintToCollection() {
       {showAlert && latestSuccessfulSignature && (
         <Alert
           color="success"
-          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
+          className="w-96 flex justify-center m-auto items-center overflow-visible my-4 mb-8 z-50"
           onDismiss={() => {
             setShowAlert(false);
             setSuccessfulMints(0);
