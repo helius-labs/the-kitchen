@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
           </div>
         </div>
         <Tooltip content="What is Compression?">
-    <a href="https://helius.dev/blog" target="_blank" rel="noopener noreferrer">
+    <a href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana" target="_blank" rel="noopener noreferrer">
       <img className="h-10 w-10" src="question.svg" alt="What is Compression?" />
     </a>
   </Tooltip>
