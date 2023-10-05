@@ -17,10 +17,11 @@ function Home() {
     return (
         <>
             <div className="my-12"> 
-                <h1 className="text-4xl text-center font-semibold"> Mint compressed NFTs</h1>
-                <p className="text-center w-full sm:w-4/12 px-4 sm:px-0 flex m-auto my-4 font-light">
-    From event ticketing to social media stickers, compressed NFTs open up a whole new world of possibilities.
-</p>                <div className="p-3 w-72 my-6 m-auto justify-center flex rounded-2xl text-center font-bold"> 
+                <h1 className="text-4xl text-center font-semibold"> Let me cook. </h1>
+                <p className="text-center justify-center w-full sm:w-4/12 px-4 sm:px-0 flex m-auto my-4 font-light">
+                Only Possible on Solana.
+                </p>                
+                <div className="p-3 w-72 my-6 m-auto justify-center flex rounded-2xl text-center font-bold"> 
                     <Wallet />
                 </div>
             </div>

@@ -44,6 +44,9 @@ export default function CollectionForm() {
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [mintButtonClicked, setMintButtonClicked] = useState(false);
   const { network } = useNetwork();
+ 
+
+  const [jsonUri, setJsonUri] = useState("");
   const [alert, setAlert] = useState<{
     type: "success" | "failure";
     message: JSX.Element;
@@ -154,6 +157,7 @@ export default function CollectionForm() {
     if (activeTab !== "mint-details") {
       return;
     }
+    setMintButtonClicked(true)
     setAlert({
       type: "success",
       message: (
@@ -205,9 +209,10 @@ export default function CollectionForm() {
       await bundlr.ready();
       const fil = await fileToBuffer(file);
       const tags = [{ name: "Content-Type", value: file.type }];
-      const upload = await bundlr.uploader.uploadData(fil, {tags: tags});
-      console.log( upload)
-      const imageUri = `https://arweave.net/${upload?.id}`;
+      const imageUpload = bundlr.createTransaction(fil, { tags })
+      imageUpload.sign()
+      const imageResult = await imageUpload.upload()
+      const imageUri = `https://arweave.net/${imageResult.id}`
       setImage(imageUri);
       const jsonData = generateJSONData(
         file,
@@ -220,17 +225,12 @@ export default function CollectionForm() {
         collectionSymbol,
         royalties
       );
-      const jsonBlob = new Blob([JSON.stringify(jsonData, null, 2)], {
-        type: "application/json",
-      });
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-      const jsonUpload = await bundlr.uploader.uploadData(
-        Buffer.from(JSON.stringify(jsonData, null, 2)),
-        {tags: tagsForJson}
-      );
-      const jsonUri = `https://arweave.net/${jsonUpload?.id}`;
+      const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
+      upload.sign()
+      const result = await upload.upload()
+      const jsonUri = `https://arweave.net/${result.id}`
       setJson(jsonUri);
-      console.log(jsonUri)
     } catch (e) {
       setAlert({
         type: "failure",
@@ -249,11 +249,7 @@ export default function CollectionForm() {
           ? batchOfAddresses.length
           : amountToMint;
 
-      let promises: any[] = [];
-
       let promiseFunctions: any[] = [];
-
-      // Populate promise functions based on mint type
       if (mintOption === "single-address") {
         promiseFunctions = Array(totalMints)
           .fill(null)
@@ -285,12 +281,17 @@ export default function CollectionForm() {
             setSuccessfulSignatures((prev) => [...prev, result.signature]);
           }
         } catch (error) {
-          console.error("Error minting:", error);
+          setAlert({
+            type: "failure",
+            message: (
+              <>
+                <p> Failed to mint. </p>
+              </>
+            ),
+          });
         } finally {
-          const currentProgress = (successfulMintsCounter / totalMints) * 100;
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
-          setProgress(currentProgress);
           await delay(6000); // Wait for 6 seconds before the next request
         }
       }

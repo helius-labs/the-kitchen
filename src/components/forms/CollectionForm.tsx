@@ -56,7 +56,7 @@ export default function CollectionForm() {
   const [txn, setTxn] = useState<string | null>(null);
   const [newFile, setFile] = useState();
   const onImageChange = handleImageChange(setImagePreview);
-
+  const [jsonUri, setJsonUri ] = useState<string | null>(null);
   const navigate = useNavigate();
   const handleMintCollectionNavigation = () => {
     navigate("/mint-cnft-collection", {
@@ -190,6 +190,7 @@ export default function CollectionForm() {
           ),
         });
       }
+      setTxn(txid);
       return txid;
     } catch (e) {
       setAlert({
@@ -203,6 +204,20 @@ export default function CollectionForm() {
     }
   };
 
+  const readFileAsBuffer = (file: File): Promise<Buffer> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve(Buffer.from(event.target.result as ArrayBuffer));
+        } else {
+          reject(new Error("Failed to read the file."));
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsArrayBuffer(file);
+    });
+  };
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
@@ -221,8 +236,6 @@ export default function CollectionForm() {
     const imageInput = document.getElementById("file") as HTMLInputElement;
     const file = imageInput?.files?.[0];
     if (!file) return;
-    const ss = new FileReader()
-    const sss = ss.readAsArrayBuffer(file)
     
     const bundlrURL =
       network === "mainnet"
@@ -234,10 +247,6 @@ export default function CollectionForm() {
         ? process.env.REACT_APP_MAINNET_API_URL
         : process.env.REACT_APP_DEVNET_API_URL;
     try {
-      let reader = new FileReader();
-      //const fileUrl = URL.createObjectURL(eventFile);
-      reader.readAsArrayBuffer(file);
-    
       await window.solana.connect();
       const provider = new PhantomWalletAdapter();
       await provider.connect();
@@ -245,12 +254,23 @@ export default function CollectionForm() {
         providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
       await bundlr.ready();
+      const tagsForImage = [{ name: "Content-Type", value: file.type }];
+      const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
+      const imagePrice = await bundlr.getPrice(file!.size);
+      const fund = await bundlr.fund(imagePrice, 3)
+      const fileBuffer = await readFileAsBuffer(file);
+
+    try { 
+      const imageUpload = bundlr.createTransaction(fileBuffer, { tags: tagsForImage })
+      imageUpload.sign()
+      const imageResult = await imageUpload.upload()
+      const imageUri = `https://arweave.net/${imageResult.id}`
       const jsonData = {
         name: collectionName,
         symbol: collectionSymbol,
         description: description,
         seller_fee_basis_points: royalties,
-        image: "imageUri",
+        image: imageUri,
         collection: {},
         attributes: [],
         properties: {
@@ -263,19 +283,25 @@ export default function CollectionForm() {
           ],
         },
       };
-     // const tagsForImage = [{ name: "Content-Type", value: file.type }];
-      const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-      const imagePrice = await bundlr.getPrice(file!.size);
-     // const fund = await bundlr.fund(imagePrice, 3)
-      try {
-        const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
-        upload.sign()
-        const result = await upload.upload()
-        console.log(result);
-    } catch (error) {
-        console.error("Upload Error:", error);
+      const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
+      upload.sign()
+      const result = await upload.upload()
+      const jsonUri = `https://arweave.net/${result.id}`
+      setJsonUri(jsonUri)
+    } catch (e) {
+      console.log(e)
+      setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Failed to upload image. </p>
+          </>
+        ),
+      });
+      return;
     }
-      const txn = await createCollection(publicKey, "jsonUri");
+    console.log("here")
+      const txn = await createCollection(publicKey, jsonUri ?? "");
       if (!txn) {
         setAlert({
           type: "failure",
@@ -299,7 +325,6 @@ export default function CollectionForm() {
       console.log(e)
       return;
     }
-
     setTxn(txn);
     setAlert({
       type: "success",

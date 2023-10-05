@@ -214,11 +214,10 @@ export default function MintToCollection() {
       await bundlr.ready();
       const fil = await fileToBuffer(file);
       const tags = [{ name: "Content-Type", value: file.type }];
-      const priceAtomicForJson = await bundlr.getPrice(file.size);
-      const upload = await bundlr.uploader.uploadData(fil, {
-        tags,
-      });
-      const imageUri = `https://arweave.net/${upload?.id}`;
+      const imageUpload = bundlr.createTransaction(fil, { tags })
+      imageUpload.sign()
+      const imageResult = await imageUpload.upload()
+      const imageUri = `https://arweave.net/${imageResult.id}`
       setImage(imageUri);
       const jsonData = generateJSONData(
         file,
@@ -231,19 +230,11 @@ export default function MintToCollection() {
         collectionSymbol,
         royalties
       );
-      const jsonBlob = new Blob([JSON.stringify(jsonData, null, 2)], {
-        type: "application/json",
-      });
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-      const price = await bundlr.getPrice(jsonBlob.size);
-      await bundlr.fund(price);
-      const jsonUpload = await bundlr.uploader.uploadData(
-        JSON.stringify(jsonData, null, 2),
-        {
-          tags: tagsForJson,
-        }
-      );
-      const jsonUri = `https://arweave.net/${jsonUpload?.id}`;
+      const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
+      upload.sign()
+      const result = await upload.upload()
+      const jsonUri = `https://arweave.net/${result.id}`
       setJson(jsonUri);
     } catch (e) {
       setAlert({
@@ -298,7 +289,6 @@ export default function MintToCollection() {
           }
         } catch (error) {
         } finally {
-          const currentProgress = (successfulMintsCounter / totalMints) * 100;
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
           await delay(6000); // Wait for 6 seconds before the next request
