@@ -12,8 +12,6 @@ function Home() {
         if (publicKey) {
             navigate('/create');
         }
-        console.log(process.env.REACT_APP_API_KEY);
-
     }, [publicKey, navigate]);
     
     return (

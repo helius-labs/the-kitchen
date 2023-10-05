@@ -26,6 +26,7 @@ import {
   getAssociatedTokenAddress,
   createInitializeMintInstruction,
 } from "@solana/spl-token";
+import BigNumber from "bignumber.js";
 import { WebBundlr } from "@bundlr-network/client";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import {
@@ -53,7 +54,7 @@ export default function CollectionForm() {
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [txn, setTxn] = useState<string | null>(null);
-
+  const [newFile, setFile] = useState();
   const onImageChange = handleImageChange(setImagePreview);
 
   const navigate = useNavigate();
@@ -62,7 +63,10 @@ export default function CollectionForm() {
       state: { mint: mintKeyPair?.publicKey.toString() },
     });
   };
-  const createCollection = async (publicKey: PublicKey | null) => {
+  const createCollection = async (
+    publicKey: PublicKey | null,
+    jsonUri: string
+  ) => {
     if (!publicKey) {
       return;
     }
@@ -118,7 +122,7 @@ export default function CollectionForm() {
               data: {
                 name: collectionName.toString(),
                 symbol: collectionSymbol.toString(),
-                uri: "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM",
+                uri: jsonUri,
                 sellerFeeBasisPoints: Number(royalties),
                 creators: [{ address: publicKey, verified: true, share: 100 }],
                 collection: null,
@@ -199,24 +203,9 @@ export default function CollectionForm() {
     }
   };
 
-  async function fileToBuffer(file: File): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const buffer = Buffer.from(arrayBuffer);
-        resolve(buffer);
-      };
-      reader.onerror = (error) => {
-        reject(error);
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-
     if (!publicKey) {
       setAlert({
         type: "failure",
@@ -228,56 +217,89 @@ export default function CollectionForm() {
       });
       return;
     }
+    
     const imageInput = document.getElementById("file") as HTMLInputElement;
     const file = imageInput?.files?.[0];
     if (!file) return;
+    const ss = new FileReader()
+    const sss = ss.readAsArrayBuffer(file)
+    
+    const bundlrURL =
+      network === "mainnet"
+        ? "https://node1.irys.xyz"
+        : "https://devnet.irys.xyz";
+
+    const providerUrl =
+      network === "mainnet"
+        ? process.env.REACT_APP_MAINNET_API_URL
+        : process.env.REACT_APP_DEVNET_API_URL;
     try {
+      let reader = new FileReader();
+      //const fileUrl = URL.createObjectURL(eventFile);
+      reader.readAsArrayBuffer(file);
+    
       await window.solana.connect();
       const provider = new PhantomWalletAdapter();
       await provider.connect();
-      const bundlrURL = network === "mainnet"
-    ? "https://node1.irys.xyz"
-    : "https://devnet.irys.xyz";
-
-      const providerUrl = network === "mainnet"
-    ? process.env.REACT_APP_MAINNET_API_URL
-    : process.env.REACT_APP_DEVNET_API_URL; 
-      const bundlr = new WebBundlr(
-      bundlrURL,
-      "solana",
-      provider,
-      {
-          providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
-      }
-  )
-      await bundlr.ready();
-      const fil = await fileToBuffer(file);
-      console.log(file.type);
-      const tags = [{ name: "Content-Type", value: file.type }];
-      const priceAtomicForJson = await bundlr.getPrice(file.size);
-      await bundlr.fund(priceAtomicForJson);
-      console.log(`Funded node with ${priceAtomicForJson} AR`);
-      const upload = await bundlr.uploader.uploadData(fil, {
-        tags,
+      const bundlr = new WebBundlr(bundlrURL, "solana", provider, {
+        providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
-
-      console.log(`Data uploaded ==> https://arweave.net/${upload?.id}`);
-    } catch (e) {
-      console.log("Error funding node ", e);
+      await bundlr.ready();
+      const jsonData = {
+        name: collectionName,
+        symbol: collectionSymbol,
+        description: description,
+        seller_fee_basis_points: royalties,
+        image: "imageUri",
+        collection: {},
+        attributes: [],
+        properties: {
+          category: "image",
+          creators: [
+            {
+              address: publicKey.toString(),
+              share: 100,
+            },
+          ],
+        },
+      };
+     // const tagsForImage = [{ name: "Content-Type", value: file.type }];
+      const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
+      const imagePrice = await bundlr.getPrice(file!.size);
+     // const fund = await bundlr.fund(imagePrice, 3)
+      try {
+        const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
+        upload.sign()
+        const result = await upload.upload()
+        console.log(result);
+    } catch (error) {
+        console.error("Upload Error:", error);
     }
-
-    const txn = await createCollection(publicKey);
-    if (!txn) {
+      const txn = await createCollection(publicKey, "jsonUri");
+      if (!txn) {
+        setAlert({
+          type: "failure",
+          message: (
+            <>
+              <p> Transaction failed. </p>
+            </>
+          ),
+        });
+        return;
+      }
+    } catch (e) {
       setAlert({
         type: "failure",
         message: (
           <>
-            <p> Transaction failed. </p>
+            <p> Failed to fund node. </p>
           </>
         ),
       });
+      console.log(e)
       return;
     }
+
     setTxn(txn);
     setAlert({
       type: "success",
@@ -495,21 +517,21 @@ export default function CollectionForm() {
           </button>
         </div>
       )}
-    {alert && (
-    <Alert
-      color={alert.type}
-      onDismiss={() => setAlert(null)}
-      className="w-100 overflow-visible my-4 mb-8" // Added a larger bottom margin
-    >
-      <span>
-        <p>
-          <span className="font-sm text-center overflow-visible">
-            {alert.message}
+      {alert && (
+        <Alert
+          color={alert.type}
+          onDismiss={() => setAlert(null)}
+          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
+        >
+          <span>
+            <p>
+              <span className="font-sm text-center overflow-visible">
+                {alert.message}
+              </span>
+            </p>
           </span>
-        </p>
-      </span>
-    </Alert>
-)}
+        </Alert>
+      )}
     </>
   );
 }

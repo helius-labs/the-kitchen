@@ -6,7 +6,7 @@ export const parseBatchAddresses = (input: string): string[] => {
   };
 
 type Attribute = { name: string; value: string };
-type Creator = { address: string; share: string };
+type Creator = { address: string; share: number };
 
 export const addAttribute = (
   attributes: Attribute[],
@@ -30,7 +30,7 @@ export const addCreator = (
   setCreators: React.Dispatch<React.SetStateAction<Creator[]>>
 ) => {
   if (creators.length < 5) {
-    setCreators([...creators, { address: "", share: "" }]);
+    setCreators([...creators, { address: "", share: 100 }]);
   }
 };
 
