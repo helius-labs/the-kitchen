@@ -48,6 +48,10 @@ export default function CollectionForm() {
     type: "success" | "failure";
     message: JSX.Element;
   } | null>(null);
+  const [txnAlert, setTxnAlert] = useState<{
+    type: "success" | "failure";
+    message: JSX.Element;
+} | null>(null);
   const [mintKeyPair, setMintKeyPair] = useState<Keypair | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -180,7 +184,7 @@ export default function CollectionForm() {
         txid,
         "confirmed"
       );
-      if (!confirmedTransaction.value.err) {
+      if (confirmedTransaction.value.err) {
         setAlert({
           type: "failure",
           message: (
@@ -256,15 +260,25 @@ export default function CollectionForm() {
       await bundlr.ready();
       const tagsForImage = [{ name: "Content-Type", value: file.type }];
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
-      const imagePrice = await bundlr.getPrice(file!.size);
-      const fund = await bundlr.fund(imagePrice, 3)
-      const fileBuffer = await readFileAsBuffer(file);
 
     try { 
+      const imagePrice = await bundlr.getPrice(file!.size);
+      const funds = await bundlr.fund(imagePrice, 3)
+      const fileBuffer = await readFileAsBuffer(file);
       const imageUpload = bundlr.createTransaction(fileBuffer, { tags: tagsForImage })
-      imageUpload.sign()
+      await imageUpload.sign()
       const imageResult = await imageUpload.upload()
       const imageUri = `https://arweave.net/${imageResult.id}`
+      if(imageUri) { 
+        setAlert({
+          type: "success",
+          message: (
+            <>
+              <p> Image uploaded. </p>
+            </>
+          ),
+        });
+      }
       const jsonData = {
         name: collectionName,
         symbol: collectionSymbol,
@@ -283,10 +297,26 @@ export default function CollectionForm() {
           ],
         },
       };
+      const jsonPrice = await bundlr.getPrice(JSON.stringify(jsonData, null, 2).length);
+      const fund = await bundlr.fund(jsonPrice, 3)
       const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
-      upload.sign()
+      await upload.sign()
       const result = await upload.upload()
       const jsonUri = `https://arweave.net/${result.id}`
+      if(jsonUri) { 
+        setAlert({
+          type: "success",
+          message: (
+            <>
+              <p> Json uploaded. 
+                <a href={jsonUri} target="_blank"
+                rel="noopener noreferrer"> View Here </a>
+              </p>
+            </>
+          ),
+        });
+      }
+      console.log(jsonUri)
       setJsonUri(jsonUri)
     } catch (e) {
       console.log(e)
@@ -300,7 +330,6 @@ export default function CollectionForm() {
       });
       return;
     }
-    console.log("here")
       const txn = await createCollection(publicKey, jsonUri ?? "");
       if (!txn) {
         setAlert({
@@ -312,6 +341,23 @@ export default function CollectionForm() {
           ),
         });
         return;
+      } else { 
+        setTxnAlert({
+          type: "success",
+          message: (
+              <>
+                  Transaction was successful!&nbsp;
+                  <a
+                      href={`https://xray.helius.xyz/tx/${txn}?network=${network}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                  >
+                      View Transaction
+                  </a>
+              </>
+          ),
+      });
       }
     } catch (e) {
       setAlert({
@@ -322,26 +368,9 @@ export default function CollectionForm() {
           </>
         ),
       });
-      console.log(e)
       return;
     }
-    setTxn(txn);
-    setAlert({
-      type: "success",
-      message: (
-        <>
-          Transaction was successful!&nbsp;
-          <a
-            href={`https://xray.helius.xyz/tx/${txn}?network=${network}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
-          >
-            View Transaction
-          </a>
-        </>
-      ),
-    });
+    
   };
   useEffect(() => {
     formRef.current?.scrollIntoView({ behavior: "auto" });
@@ -542,21 +571,37 @@ export default function CollectionForm() {
           </button>
         </div>
       )}
-      {alert && (
-        <Alert
-          color={alert.type}
-          onDismiss={() => setAlert(null)}
-          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
-        >
-          <span>
+{alert && !txnAlert && (
+    <Alert
+        color={alert.type}
+        onDismiss={() => setAlert(null)}
+        className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
+    >
+        <span>
             <p>
-              <span className="font-sm text-center overflow-visible">
-                {alert.message}
-              </span>
+                <span className="font-sm text-center overflow-visible">
+                    {alert.message}
+                </span>
             </p>
-          </span>
-        </Alert>
-      )}
+        </span>
+    </Alert>
+)}
+
+{txnAlert && (
+    <Alert
+        color={txnAlert.type}
+        onDismiss={() => setTxnAlert(null)}
+        className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute top-50 right-28 z-50" // Modify the className to change the position of this alert
+    >
+        <span>
+            <p>
+                <span className="font-sm text-center overflow-visible">
+                    {txnAlert.message}
+                </span>
+            </p>
+        </span>
+    </Alert>
+)}
     </>
   );
 }

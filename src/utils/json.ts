@@ -6,7 +6,14 @@ type CreatorType = {
     address: string;
     share: number;
   };
-export const generateJSONData = (file: File, imageUri: string, collectionName: string, description: string, externalUrl: string, attributes: AttributeType[], creators: CreatorType[], collectionSymbol: string, royalties: number) => {
+  
+export const generateJSONData = (file: File, imageUri: string, collectionName: string, description: string, externalUrl: string, attributes: AttributeType[], creators: CreatorType[], collectionSymbol: string, royalties: number, defaultPublicKey: string ) => {
+    const defaultCreators = [
+        {
+          address: defaultPublicKey,
+          share: 100,
+        },
+      ];
     let jsonData = {
         name: collectionName,
         description: description,
@@ -14,7 +21,7 @@ export const generateJSONData = (file: File, imageUri: string, collectionName: s
         image: imageUri,  
         external_url: externalUrl ? externalUrl : "",
         seller_fee_basis_points: royalties,
-        attributes: attributes.map(attr => ({ trait_type: attr.name, value: attr.value })) || [],
+        attributes: attributes && attributes[0].name ? attributes.map(attr => ({ trait_type: attr.name, value: attr.value })) : [],
         properties: {
             files: [
                 {
@@ -23,7 +30,7 @@ export const generateJSONData = (file: File, imageUri: string, collectionName: s
                 },
             ],
             category: "image",
-            creators: creators.map(creator => ({ address: creator.address, share: Number(creator.share)})) || []
+            creators: creators && creators[0].address ? creators.map(creator => ({ address: creator.address, share: Number(creator.share) })) : defaultCreators,
         }
     };
 
