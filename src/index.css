@@ -7,6 +7,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
@@ -19,3 +20,32 @@ code {
   background-color: #E84125 !important;
   border-radius: 20px !important;
 }*/
+iframe#webpack-dev-server-client-overlay{display:none!important}
+/* This targets the thumb (draggable circle) of the slider on most webkit browsers */
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #E84125; /* Your desired color for the thumb */
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #E84125;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.custom-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #E84125;
+    cursor: pointer;
+    border-radius: 50%;
+}
