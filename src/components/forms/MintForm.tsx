@@ -17,7 +17,7 @@ import {
 import axios, { AxiosError } from "axios";
 import { useNetwork } from "../../../src/contexts/rpc";
 import { generateJSONData } from "../../../src/utils/json";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PhantomWalletAdapter, WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { WebBundlr } from "@bundlr-network/client";
 
 export default function CollectionForm() {
@@ -34,7 +34,7 @@ export default function CollectionForm() {
   const [successfulMints, setSuccessfulMints] = useState<number>(0);
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [progress, setProgress] = useState(0); // Progress of minting
-  const { publicKey } = useWallet();
+  const { publicKey, wallet} = useWallet();
   const [activeTab, setActiveTab] = useState<TabType>("details");
   const [batchAddresses, setBatchAddresses] = useState("");
   const [mintOption, setMintOption] = useState("single-address"); // Default to "Single Address"
@@ -193,8 +193,8 @@ export default function CollectionForm() {
     let jsonUri = "";
     try {
       await window.solana.connect();
-      const provider = new PhantomWalletAdapter();
-      await provider.connect();
+      const useProvider = wallet?.adapter as WalletConnectWalletAdapter;
+      await useProvider.connect();
       const bundlrURL =
         network === "mainnet"
           ? "https://node1.irys.xyz"
@@ -204,7 +204,7 @@ export default function CollectionForm() {
         network === "mainnet"
           ? process.env.REACT_APP_MAINNET_API_URL
           : process.env.REACT_APP_DEVNET_API_URL;
-      const bundlr = new WebBundlr(bundlrURL, "solana", provider, {
+      const bundlr = new WebBundlr(bundlrURL, "solana", useProvider, {
         providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
       await bundlr.ready();
@@ -337,7 +337,7 @@ export default function CollectionForm() {
               <h3 className="text-md font-bold text-left mb-1">Description</h3>
               <hr className="my-1 opacity-50" />
               <div
-                className="overflow-y-auto h-24"
+                className="overflow-y-auto h-24 scrollbar-thin"
                 style={{ wordWrap: "break-word" }}
               >
                 <p className="text-sm">{description}</p>
@@ -505,7 +505,7 @@ export default function CollectionForm() {
                       maxLength={400}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="block p-2.5 w-full text-sm text-white bg-black rounded-lg border border-gray-300 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
+                      className="scrollbar-thin block p-2.5 w-full text-sm text-white bg-black rounded-lg border border-gray-300 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                       placeholder='e.g: "Helius Hackers is a community of hackers who are passionate about building on Solana."'
                       required={activeTab === "details"}
                     />

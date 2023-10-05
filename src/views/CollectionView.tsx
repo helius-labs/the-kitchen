@@ -11,7 +11,7 @@ export function CollectionView() {
             navigate('/')
         }
       }, [connected, navigate])
-    return <div>
+    return <div className="scrollbar-thin">
         <CollectionForm />
     </div>;
   }

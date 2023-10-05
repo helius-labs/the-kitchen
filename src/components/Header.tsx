@@ -17,8 +17,8 @@ const Header: React.FC<HeaderProps> = ({ imageUrl }) => {
           The Kitchen
         </h1>
         <p className="text-center my-2 w-full">
-        Cook up some tasty cNFTs, for free.
-</p>
+          Cook up some tasty cNFTs, for free.
+        </p>
       </div>
     </div>
   );

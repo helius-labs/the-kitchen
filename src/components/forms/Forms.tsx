@@ -9,7 +9,7 @@ export default function ToggleForm() {
 
   if (txn) {
     return (
-      <div className="flex flex-col items-center justify-start min-h-screen mt-50">
+      <div className="flex flex-col items-center justify-start min-h-screen mt-50 scrollbar-thin">
         <div
           className="w-full max-w-xl relative -mt-6"
           style={{ height: "400px" }}
