@@ -17,8 +17,8 @@ const Header: React.FC<HeaderProps> = ({ imageUrl }) => {
           The Kitchen
         </h1>
         <p className="text-center my-2 w-full">
-          Solana's Premier location for minting compressed NFTs
-        </p>
+        Cook up some tasty cNFTs, for free.
+</p>
       </div>
     </div>
   );

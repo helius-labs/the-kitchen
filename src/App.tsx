@@ -34,7 +34,6 @@ function MainApp() {
 
   const connection = useMemo(() => new Connection(endpoint), [endpoint]);
   useEffect(() => {
-    console.log(`Network changed to: ${network} ${endpoint}`);
   }, [network]);
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],

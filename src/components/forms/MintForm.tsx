@@ -16,6 +16,9 @@ import {
 } from "../../../src/utils/forms";
 import axios, { AxiosError } from "axios";
 import { useNetwork } from "../../../src/contexts/rpc";
+import { generateJSONData } from "../../../src/utils/json";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { WebBundlr } from "@bundlr-network/client";
 
 export default function CollectionForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export default function CollectionForm() {
   const [royalties, setRoyalties] = useState<number>(0);
   const formRef = useRef<HTMLFormElement | null>(null);
   const [attributes, setAttributes] = useState([{ name: "", value: "" }]);
-  const [creators, setCreators] = useState([{ address: "", share: "" }]);
+  const [creators, setCreators] = useState([{ address: "", share: 100 }]);
   const [amountToMint, setAmountToMint] = useState<number>(1);
   const [successfulMints, setSuccessfulMints] = useState<number>(0);
   const [showAlert, setShowAlert] = useState<boolean>(false);
@@ -36,9 +39,18 @@ export default function CollectionForm() {
   const [batchAddresses, setBatchAddresses] = useState("");
   const [mintOption, setMintOption] = useState("single-address"); // Default to "Single Address"
   const [singleAddress, setSingleAddress] = useState("");
+  const [image, setImage] = useState("");
+  const [json, setJson] = useState("");
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [mintButtonClicked, setMintButtonClicked] = useState(false);
   const { network } = useNetwork();
+ 
+
+  const [jsonUri, setJsonUri] = useState("");
+  const [alert, setAlert] = useState<{
+    type: "success" | "failure";
+    message: JSX.Element;
+  } | null>(null);
   const [latestSuccessfulSignature, setLatestSuccessfulSignature] = useState<
     string | null
   >(null);
@@ -70,7 +82,6 @@ export default function CollectionForm() {
     royalties: number,
     uri: string
   ) => {
-    
     let retries = 0;
     while (retries < MAX_RETRIES) {
       try {
@@ -99,13 +110,24 @@ export default function CollectionForm() {
         if (error.response && error.response.status === 429) {
           // Check for 429 status
           retries++;
-          console.log(
-            `429 detected. Waiting for ${RETRY_DELAY / 1000} seconds...`
-          );
+          setAlert({
+            type: "failure",
+            message: (
+              <>
+                <p>Too many requests. Retrying...</p>
+              </>
+            ),
+          });
           await delay(RETRY_DELAY);
         } else {
-          console.error("Error minting cNFT:", error);
-          throw error;
+          setAlert({
+            type: "failure",
+            message: (
+              <>
+                <p>Error minting: {error.message}</p>
+              </>
+            ),
+          });
         }
       }
     }
@@ -116,11 +138,108 @@ export default function CollectionForm() {
     }
   }
 
+  async function fileToBuffer(file: File): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const buffer = Buffer.from(arrayBuffer);
+        resolve(buffer);
+      };
+      reader.onerror = (error) => {
+        reject(error);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    setMintButtonClicked(true);
+    if (activeTab !== "mint-details") {
+      return;
+    }
+    setMintButtonClicked(true)
+    setAlert({
+      type: "success",
+      message: (
+        <>
+          <p> Mint Submitted! </p>
+        </>
+      ),
+    });
     if (!publicKey) {
-      alert("Connect your wallet to continue.");
+      setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Please connect wallet. </p>
+          </>
+        ),
+      });
+      return;
+    }
+    const imageInput = document.getElementById("file") as HTMLInputElement;
+    const file = imageInput?.files?.[0];
+    if (!file) {
+      setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Please upload an image. </p>
+          </>
+        ),
+      });
+      return;
+    }
+    try {
+      await window.solana.connect();
+      const provider = new PhantomWalletAdapter();
+      await provider.connect();
+      const bundlrURL =
+        network === "mainnet"
+          ? "https://node1.irys.xyz"
+          : "https://devnet.irys.xyz";
+
+      const providerUrl =
+        network === "mainnet"
+          ? process.env.REACT_APP_MAINNET_API_URL
+          : process.env.REACT_APP_DEVNET_API_URL;
+      const bundlr = new WebBundlr(bundlrURL, "solana", provider, {
+        providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
+      });
+      await bundlr.ready();
+      const fil = await fileToBuffer(file);
+      const tags = [{ name: "Content-Type", value: file.type }];
+      const imageUpload = bundlr.createTransaction(fil, { tags })
+      imageUpload.sign()
+      const imageResult = await imageUpload.upload()
+      const imageUri = `https://arweave.net/${imageResult.id}`
+      setImage(imageUri);
+      const jsonData = generateJSONData(
+        file,
+        imageUri,
+        collectionName,
+        description,
+        externalUrl,
+        attributes,
+        creators,
+        collectionSymbol,
+        royalties
+      );
+      const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
+      const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
+      upload.sign()
+      const result = await upload.upload()
+      const jsonUri = `https://arweave.net/${result.id}`
+      setJson(jsonUri);
+    } catch (e) {
+      setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Failed to fund node. </p>
+          </>
+        ),
+      });
       return;
     }
     if (activeTab === "mint-details" && mintButtonClicked) {
@@ -130,36 +249,24 @@ export default function CollectionForm() {
           ? batchOfAddresses.length
           : amountToMint;
 
-      let promises: any[] = [];
-
       let promiseFunctions: any[] = [];
-
-      // Populate promise functions based on mint type
       if (mintOption === "single-address") {
         promiseFunctions = Array(totalMints)
           .fill(null)
           .map(
             () => () =>
               mintNFT(
-                // Notice the added "() =>"
                 collectionName,
                 collectionSymbol,
                 singleAddress.toString(),
                 royalties,
-                "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
+                json
               )
           );
       } else {
         promiseFunctions = batchOfAddresses.map(
           (address) => () =>
-            mintNFT(
-              // Notice the added "() =>"
-              collectionName,
-              collectionSymbol,
-              address,
-              royalties,
-              "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
-            )
+            mintNFT(collectionName, collectionSymbol, address, royalties, json)
         );
       }
       const generator = generatePromises(promiseFunctions);
@@ -174,27 +281,22 @@ export default function CollectionForm() {
             setSuccessfulSignatures((prev) => [...prev, result.signature]);
           }
         } catch (error) {
-          console.error("Error minting:", error);
+          setAlert({
+            type: "failure",
+            message: (
+              <>
+                <p> Failed to mint. </p>
+              </>
+            ),
+          });
         } finally {
-          const currentProgress = (successfulMintsCounter / totalMints) * 100;
-          console.log("Successful Mints:", successfulMintsCounter);
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
-          setProgress(currentProgress);
           await delay(6000); // Wait for 6 seconds before the next request
         }
       }
     }
   };
-  /*const metaData = await StageCollectionFormMetadata(
-      collectionName,
-      collectionSymbol,
-      description,
-      royalties,
-      file,
-      wallet
-    );
-    */
 
   useEffect(() => {
     formRef.current?.scrollIntoView({ behavior: "auto" });
@@ -497,7 +599,7 @@ export default function CollectionForm() {
                         value={creator.share}
                         onChange={(e) => {
                           const newCreators = [...creators];
-                          newCreators[index].share = e.target.value;
+                          newCreators[index].share = Number(e.target.value);
                           setCreators(newCreators);
                         }}
                         className="bg-black border h-8 border-gray-300 border-opacity-50 text-white text-sm rounded-lg hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
@@ -662,7 +764,7 @@ export default function CollectionForm() {
       {showAlert && latestSuccessfulSignature && (
         <Alert
           color="success"
-          className="w-2/5 sm:w-2/5 justify-center flex m-auto my-4"
+          className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 absolute bottom-0 left-28 z-50"
           onDismiss={() => {
             setShowAlert(false);
             setSuccessfulMints(0);
@@ -671,7 +773,8 @@ export default function CollectionForm() {
         >
           <span>
             <p className="font-medium">Success!</p>
-            {successfulMints} cNFTs have been successfully minted.
+            {successfulMints} cNFTs have been successfully minted. Keep this tab
+            open until completed.
             <p>
               Mint Success!:
               <a
