@@ -16,7 +16,7 @@ function Home() {
     
     return (
         <>
-            <div className="my-12"> 
+            <div className="my-12 scrollbar-thin"> 
                 <h1 className="text-4xl text-center font-semibold"> Let me cook. </h1>
                 <p className="text-center justify-center w-full sm:w-4/12 px-4 sm:px-0 flex m-auto my-4 font-light">
                 Only Possible on Solana.

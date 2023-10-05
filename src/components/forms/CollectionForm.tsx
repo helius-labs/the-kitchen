@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Label, Alert } from "flowbite-react";
 import defaultImage from "../../assets/default.jpeg";
 import { useNavigate } from "react-router-dom";
-import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection, WalletProvider } from "@solana/wallet-adapter-react";
 import {
   Keypair,
   TransactionMessage,
@@ -28,6 +28,7 @@ import {
 } from "@solana/spl-token";
 import BigNumber from "bignumber.js";
 import { WebBundlr } from "@bundlr-network/client";
+import { WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import {
   getMasterEditionPDA,
@@ -36,6 +37,7 @@ import {
 } from "../../../src/utils/pdas";
 import { handleImageChange } from "../../../src/utils/forms";
 import { useNetwork } from "../../../src/contexts/rpc";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
 export default function CollectionForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function CollectionForm() {
   const [mintKeyPair, setMintKeyPair] = useState<Keypair | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, wallet, sendTransaction, wallets } = useWallet();
   const { connection } = useConnection();
   const [txn, setTxn] = useState<string | null>(null);
   const [newFile, setFile] = useState();
@@ -252,9 +254,9 @@ export default function CollectionForm() {
         : process.env.REACT_APP_DEVNET_API_URL;
     try {
       await window.solana.connect();
-      const provider = new PhantomWalletAdapter();
-      await provider.connect();
-      const bundlr = new WebBundlr(bundlrURL, "solana", provider, {
+      const useProvider = wallet?.adapter as WalletConnectWalletAdapter;
+      await useProvider.connect();
+      const bundlr = new WebBundlr(bundlrURL, "solana", useProvider, {
         providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
       });
       await bundlr.ready();
@@ -404,7 +406,7 @@ export default function CollectionForm() {
               </div>
               <div className="relative mt-4 flex-grow">
                 <h3 className="text-base font-bold">Description</h3>
-                <p className="text-sm mt-2 text-opacity-80 max-h-24 overflow-y-auto">
+                <p className="text-sm mt-2 text-opacity-80 max-h-24 overflow-y-auto scrollbar-thin">
                   {description}
                 </p>
               </div>
@@ -489,7 +491,7 @@ export default function CollectionForm() {
                   maxLength={400}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="block p-2.5 w-full text-sm text-white bg-black rounded-lg border border-gray-300 hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
+                  className="scrollbar-thin block p-2.5 w-full text-sm text-white bg-black rounded-lg border border-gray-300 hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                   placeholder='e.g: "Helius Hackers is a community of hackers who are passionate about building on Solana."'
                 ></textarea>
               </div>

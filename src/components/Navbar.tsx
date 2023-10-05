@@ -15,7 +15,6 @@ const Navbar: React.FC = () => {
   return (
     <div className="flex justify-between items-center py-1 px-2 bg-black text-white overflow-x-hidden">
       {" "}
-      {/* Added overflow-x-hidden */}
       <a href="/">
         <img
           className="w-24 sm:w-1/6 max-w-full"
@@ -23,14 +22,12 @@ const Navbar: React.FC = () => {
           alt="Helius Logo"
         />
       </a>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 p-2">
         {" "}
-        {/* Reduced spacing to space-x-2 */}
         <div className="flex items-center space-x-2">
           <span className="text-white font-bold">
             {isMainnet ? "Mainnet" : "Devnet"}
           </span>
-
           <div className="relative inline-block w-10 align-middle select-none">
             <input
               type="checkbox"
@@ -70,18 +67,18 @@ const Navbar: React.FC = () => {
         </div>
         <Tooltip content="What is Compression?">
     <a href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana" target="_blank" rel="noopener noreferrer">
-      <img className="h-10 w-10" src="question.svg" alt="What is Compression?" />
+      <img className="h-10 w-10 p-1" src="question.svg" alt="What is Compression?" />
     </a>
   </Tooltip>
         <Tooltip content="Docs">
-          <a href="https://github.com/helius-labs/the-kitchen">
-            <img className="h-10 w-10" src="docs.svg" alt="Docs" />
+          <a href="https://docs.helius.dev/welcome/what-is-helius" target="_blank" rel="noreferrer">
+            <img className="h-10 w-10 p-1" src="docs.svg" alt="Docs" />
           </a>
         </Tooltip>
         <Tooltip content="Github Repository">
-          <a href="https://docs.helius.dev/welcome/what-is-helius">
+          <a href="https://github.com/helius-labs/the-kitchen" target="_blank" rel="noopener noreferrer">
             <img
-              className="h-10 w-10"
+              className="h-10 w-10 p-1"
               src="github.svg"
               alt="Github Repository"
             />

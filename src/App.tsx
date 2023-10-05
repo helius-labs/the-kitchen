@@ -13,6 +13,7 @@ import Header from "./components/Header";
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
+  WalletConnectWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { Connection } from "@solana/web3.js";
 import ToggleForm from "./components/forms/Forms";
@@ -44,7 +45,7 @@ function MainApp() {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <TransactionProvider>
-        <div className="bg-black text-white w-100">
+        <div className="bg-black text-white w-100 scrollbar-thin">
             <Navbar />
           </div>
           <div className="bg-black text-white min-h-screen overflow-hidden overflow-x-hidden overflow-y-hidden">
