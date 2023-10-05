@@ -14,7 +14,7 @@ import {
   handleTabChange,
   TabType,
 } from "../../../src/utils/forms";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { useNetwork } from "../../../src/contexts/rpc";
 
 export default function CollectionForm() {
@@ -58,33 +58,56 @@ export default function CollectionForm() {
     setBatchAddresses,
     setBatchFile
   );
-  const mintNFT = async (mintName: string, mintSymbol: string, owner: string, royalties: number, uri: string) => {
-    const BASE_URL = network === 'mainnet' 
-    ? 'https://parmigiana.helius-rpc.com/' 
-    : 'https://stirfry.helius-rpc.com/';
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 10000;
+
+  const mintNFT = async (
+    mintName: string,
+    mintSymbol: string,
+    owner: string,
+    royalties: number,
+    uri: string
+  ) => {
     
-    try {
-      const response = await axios.post(BASE_URL, {
-        jsonrpc: '2.0',
-        id: 'helius-test',
-        method: 'mintCompressedNft',
-        params: {
-          name: mintName,
-          symbol: mintSymbol,
-          owner: owner,
-          uri: uri,
-          sellerFeeBasisPoints: royalties
+    let retries = 0;
+    while (retries < MAX_RETRIES) {
+      try {
+        const response = await axios.post(
+          `https://proxy-gold-gamma.vercel.app/api/${network}`,
+          {
+            jsonrpc: "2.0",
+            id: "helius-test",
+            method: "mintCompressedNft",
+            params: {
+              name: mintName,
+              symbol: mintSymbol,
+              owner: owner,
+              uri: uri,
+              sellerFeeBasisPoints: royalties,
+            },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        return response.data.result;
+      } catch (error: AxiosError | any) {
+        if (error.response && error.response.status === 429) {
+          // Check for 429 status
+          retries++;
+          console.log(
+            `429 detected. Waiting for ${RETRY_DELAY / 1000} seconds...`
+          );
+          await delay(RETRY_DELAY);
+        } else {
+          console.error("Error minting cNFT:", error);
+          throw error;
         }
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      return response.data.result;
-    } catch (error) {
-      console.error("Error minting cNFT:", error);
-      throw error;
+      }
     }
   };
   function* generatePromises(promises: string | any[]) {
@@ -92,7 +115,6 @@ export default function CollectionForm() {
       yield promises[i];
     }
   }
-
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
@@ -107,58 +129,59 @@ export default function CollectionForm() {
         mintOption === "batch-addresses"
           ? batchOfAddresses.length
           : amountToMint;
-  
+
       let promises: any[] = [];
-  
-      // Populate promises based on mint type
+
+      let promiseFunctions: any[] = [];
+
+      // Populate promise functions based on mint type
       if (mintOption === "single-address") {
-        promises = Array(totalMints)
+        promiseFunctions = Array(totalMints)
           .fill(null)
-          .map(() =>
+          .map(
+            () => () =>
+              mintNFT(
+                // Notice the added "() =>"
+                collectionName,
+                collectionSymbol,
+                singleAddress.toString(),
+                royalties,
+                "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
+              )
+          );
+      } else {
+        promiseFunctions = batchOfAddresses.map(
+          (address) => () =>
             mintNFT(
+              // Notice the added "() =>"
               collectionName,
               collectionSymbol,
-              singleAddress.toString(),
+              address,
               royalties,
               "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
             )
-          );
-      } else {
-        promises = batchOfAddresses.map((address) =>
-         mintNFT(
-            collectionName,
-            collectionSymbol,
-            address,
-            royalties,
-            "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
-          )
         );
-      }    
-      const generator = generatePromises(promises);
+      }
+      const generator = generatePromises(promiseFunctions);
       let successfulMintsCounter = 0;
-      let totalPromisesCounter = 0;
-  
-      for (let promise of generator) {
-        if (totalPromisesCounter !== 0 && totalPromisesCounter % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 60000)); // Wait for 1 minute
-        }
+
+      for (let promiseFunction of generator) {
         try {
-          const result = await promise;
+          const result = await promiseFunction();
           successfulMintsCounter++;
           if (result.signature) {
             setLatestSuccessfulSignature(result.signature);
-            setSuccessfulSignatures(prev => [...prev, result.signature]);
+            setSuccessfulSignatures((prev) => [...prev, result.signature]);
           }
         } catch (error) {
           console.error("Error minting:", error);
         } finally {
-          totalPromisesCounter++;
           const currentProgress = (successfulMintsCounter / totalMints) * 100;
           console.log("Successful Mints:", successfulMintsCounter);
-          console.log("Progress:", currentProgress);
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
           setProgress(currentProgress);
+          await delay(6000); // Wait for 6 seconds before the next request
         }
       }
     }
@@ -631,17 +654,6 @@ export default function CollectionForm() {
                     </button>
                   )}
                 </div>
-
-                {/* <Progress
-                labelProgress
-                labelText
-                progress={progress}
-                progressLabelPosition="inside"
-                size="lg"
-                color="orange"
-                textLabel="Minting Progress"
-                textLabelPosition="outside"
-                  /> */}
               </div>
             </form>
           </div>
@@ -663,7 +675,7 @@ export default function CollectionForm() {
             <p>
               Mint Success!:
               <a
-                href={`https://xray.helius.xyz/tx/${latestSuccessfulSignature}/?network=devnet`}
+                href={`https://xray.helius.xyz/tx/${latestSuccessfulSignature}/?network=${network}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

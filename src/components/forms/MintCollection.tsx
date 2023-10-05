@@ -25,6 +25,9 @@ import {
   getCollectionAuthRecordPDA,
   getMetadataPDA,
 } from "../../../src/utils/pdas";
+import { useNetwork } from "../../../src/contexts/rpc";
+import axios, { AxiosError } from "axios";
+
 export default function MintToCollection() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [collectionName, setCollectionName] = useState("");
@@ -41,6 +44,7 @@ export default function MintToCollection() {
   const [progress, setProgress] = useState(0); // Progress of minting
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
+  const { network } = useNetwork();
   const [activeTab, setActiveTab] = useState<TabType>("details");
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [batchAddresses, setBatchAddresses] = useState<string>("");
@@ -53,6 +57,7 @@ export default function MintToCollection() {
   const [successfulSignatures, setSuccessfulSignatures] = useState<string[]>(
     []
   );
+  
 
   const location = useLocation();
   const mint = location.state?.mint;
@@ -72,6 +77,64 @@ export default function MintToCollection() {
     setBatchFile
   );
 
+    const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 10000;
+ const mintNFT = async (
+    mintName: string,
+    mintSymbol: string,
+    owner: string,
+    royalties: number,
+    uri: string
+  ) => {
+   
+    let retries = 0;
+    while (retries < MAX_RETRIES) {
+      try {
+        const response = await axios.post(
+          `https://proxy-gold-gamma.vercel.app/api/${network}-collection`,
+          {
+            jsonrpc: "2.0",
+            id: "helius-test",
+            method: "mintCompressedNft",
+            params: {
+              name: mintName,
+              symbol: mintSymbol,
+              owner: owner,
+              uri: uri,
+              collection: mint.toString(),
+              sellerFeeBasisPoints: royalties,
+            },
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        return response.data.result;
+      } catch (error: AxiosError | any) {
+        if (error.response && error.response.status === 429) {
+          // Check for 429 status
+          retries++;
+          console.log(
+            `429 detected. Waiting for ${RETRY_DELAY / 1000} seconds...`
+          );
+          await delay(RETRY_DELAY);
+        } else {
+          console.error("Error minting cNFT:", error);
+          throw error;
+        }
+      }
+    }
+  };
+  function* generatePromises(promises: string | any[]) {
+    for (let i = 0; i < promises.length; i++) {
+      yield promises[i];
+    }
+  }
+
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
     setMintButtonClicked(true);
@@ -85,85 +148,61 @@ export default function MintToCollection() {
         mintOption === "batch-addresses"
           ? batchOfAddresses.length
           : amountToMint;
+
       let promises: any[] = [];
 
+      let promiseFunctions: any[] = [];
+
+      // Populate promise functions based on mint type
       if (mintOption === "single-address") {
-        promises = Array(totalMints)
+        promiseFunctions = Array(totalMints)
           .fill(null)
-          .map(() =>
-            mintCNFTCollection(
-              collectionName,
-              collectionSymbol,
-              singleAddress,
-              royalties,
-              "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM",
-              mint
-            )
+          .map(
+            () => () =>
+              mintNFT(
+                // Notice the added "() =>"
+                collectionName,
+                collectionSymbol,
+                singleAddress.toString(),
+                royalties,
+                "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
+              )
           );
       } else {
-        promises = batchOfAddresses.map((address: any) =>
-          mintCNFTCollection(
-            collectionName,
-            collectionSymbol,
-            address,
-            royalties,
-            "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM",
-            mint
-          )
+        promiseFunctions = batchOfAddresses.map(
+          (address) => () =>
+            mintNFT(
+              // Notice the added "() =>"
+              collectionName,
+              collectionSymbol,
+              address,
+              royalties,
+              "https://arweave.net/4Y8b3nIcBMaqevhOycCm-EQ5FNwLZ2YKQ6iK_3H57YM"
+            )
         );
       }
-      const results = await Promise.allSettled(promises);
+      const generator = generatePromises(promiseFunctions);
+      let successfulMintsCounter = 0;
 
-      const successfulResults = results.filter(
-        (result) => result.status === "fulfilled"
-      );
-      const successfulChunkMints = successfulResults.length;
-      const successfulSignatures = successfulResults.map(
-        (result) => (result as PromiseFulfilledResult<any>).value.signature
-      );
-      if (successfulSignatures.length > 0) {
-        setLatestSuccessfulSignature(
-          successfulSignatures[successfulSignatures.length - 1]
-        );
+      for (let promiseFunction of generator) {
+        try {
+          const result = await promiseFunction();
+          successfulMintsCounter++;
+          if (result.signature) {
+            setLatestSuccessfulSignature(result.signature);
+            setSuccessfulSignatures((prev) => [...prev, result.signature]);
+          }
+        } catch (error) {
+          console.error("Error minting:", error);
+        } finally {
+          const currentProgress = (successfulMintsCounter / totalMints) * 100;
+          console.log("Successful Mints:", successfulMintsCounter);
+          setShowAlert(true);
+          setSuccessfulMints(successfulMintsCounter);
+          setProgress(currentProgress);
+          await delay(6000); // Wait for 6 seconds before the next request
+        }
       }
-      setSuccessfulSignatures(successfulSignatures);
-
-      const currentProgress = (successfulChunkMints / totalMints) * 100;
-      setShowAlert(true);
-      setSuccessfulMints(successfulChunkMints);
-      setProgress(currentProgress);
-    }
-    if (revoke === true) {
-      const collectionKey = mint;
-      let newAuthority = new PublicKey(
-        "2LbAtCJSaHqTnP9M5QSjvAMXk79RNLusFspFN5Ew67TC"
-      );
-      let tokenMetadataPubkey = await getMetadataPDA(collectionKey);
-      let collectionAuthorityPda = await getCollectionAuthRecordPDA(
-        collectionKey,
-        newAuthority
-      );
-      let instructions = [
-        createRevokeCollectionAuthorityInstruction({
-          collectionAuthorityRecord: collectionAuthorityPda,
-          metadata: tokenMetadataPubkey,
-          mint: mint,
-          revokeAuthority: newAuthority,
-          delegateAuthority: publicKey,
-        }),
-      ];
-      let latestBlockhash = await connection.getLatestBlockhash();
-      const message = new TransactionMessage({
-        payerKey: publicKey,
-        recentBlockhash: latestBlockhash.blockhash,
-        instructions,
-      }).compileToLegacyMessage();
-      const transaction = new VersionedTransaction(message);
-      const signature = transaction.sign([]);
-      const txid = await sendTransaction(transaction, connection);
-      return txid;
-    } else {
-      return;
     }
   };
   /*const metaData = await StageCollectionFormMetadata(
@@ -682,7 +721,7 @@ export default function MintToCollection() {
             <p>
               Mint Success!:
               <a
-                href={`https://xray.helius.xyz/tx/${latestSuccessfulSignature}/?network=devnet`}
+                href={`https://xray.helius.xyz/tx/${latestSuccessfulSignature}/?network=${network}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

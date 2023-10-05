@@ -285,7 +285,7 @@ export default function CollectionForm() {
         <>
           Transaction was successful!&nbsp;
           <a
-            href={`https://xray.helius.xyz/tx/${txn}?network=devnet`}
+            href={`https://xray.helius.xyz/tx/${txn}?network=${network}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"

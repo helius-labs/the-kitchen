@@ -19,7 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useNetwork } from "../../../src/contexts/rpc";
 
-export default function ExistingCollectionForm() {
+export default function RevokeCollection() {
   const [collectionName, setCollectionName] = useState("");
   const [revokeAuthority, setRevokeAuthority] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
