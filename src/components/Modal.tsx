@@ -3,6 +3,8 @@
 import { Button, Modal, Tooltip } from "flowbite-react";
 import { useState } from "react";
 import { useNetwork } from "../contexts/rpc";
+import { useRef, useEffect } from 'react';
+
 export default function DefaultModal() {
   const [openModal, setOpenModal] = useState<string | undefined>();
   const props = { openModal, setOpenModal };
@@ -13,10 +15,12 @@ export default function DefaultModal() {
     const newNetwork = isMainnet ? "devnet" : "mainnet";
     setNetwork(newNetwork);
   };
+ 
+  
   return (
     <>
       <Tooltip content="Menu">
-        <button onClick={() => props.setOpenModal("dismissible")}>
+                <button onClick={() => props.setOpenModal("dismissible")}>
           <img
             className="h-8 w-8 sm:h-10 sm:w-10 md:h-8 md:w-12 lg:h-10 lg:w-10 p-1"
             src="hamburger.svg"
@@ -32,7 +36,9 @@ export default function DefaultModal() {
         show={props.openModal === "dismissible"}
         onClose={() => props.setOpenModal(undefined)}
       >
-        <Modal.Body className="bg-black rounded-lg">
+                <Modal.Header className="h-12 w-full p-2 text-center justify-center items-center bg-black"/>
+
+        <Modal.Body className="bg-black">
           <div className="space-y-4">
             <a
               href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana"
