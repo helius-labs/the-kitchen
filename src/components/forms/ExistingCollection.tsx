@@ -207,7 +207,8 @@ export default function ExistingCollectionForm() {
               </div>
             </div>
             <button
-              className="w-full bg-orange-500 p-2 font-bold rounded-lg my-4"
+              className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
+hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
               type="submit"
             >
               Import
@@ -221,7 +222,8 @@ export default function ExistingCollectionForm() {
             </h2>
             <button
               onClick={handleMintCollectionNavigation}
-              className="w-full bg-orange-500 p-2 font-bold rounded-lg my-4 hover:bg-orange-600"
+              className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
+              hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
             >
               Go to Mint Collection
             </button>

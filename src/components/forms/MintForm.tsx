@@ -753,7 +753,7 @@ export default function CollectionForm() {
 
                   {activeTab === "mint-details" && (
                     <button
-                      className="bg-orange-500 px-4 py-2 rounded-lg text-white font-bold w-full 
+                      className="bg-[#E84125] px-4 py-2 rounded-lg text-white font-bold w-full 
                              hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
                       type="submit"
                       data-submit="mint"

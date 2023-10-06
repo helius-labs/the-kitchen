@@ -1,6 +1,7 @@
 import { Wallet } from "../components/Wallet";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 function Home() {
     const { wallet, publicKey } = useWallet();
     const [connected, setConnected] = useState(false);
@@ -9,6 +10,8 @@ function Home() {
             setConnected(true);
         }
     }, [wallet?.adapter.connected]);
+
+    let navigate = useNavigate();
    
     return (
         <>
@@ -23,7 +26,9 @@ function Home() {
                     )} 
                     {connected && (
                         <>
-                          <button className="bg-orange-600 p-4 rounded-2xl"> 
+                          <button className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
+                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150" onClick={() => navigate("/create")}
+                             > 
                         Let me cook
                         </button>
                         </>

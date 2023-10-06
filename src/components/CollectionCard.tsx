@@ -10,7 +10,7 @@ interface CollectionCardProps {
 }
 export default function CollectionCards() {
   return (
-    <div className="flex flex-col md:flex-row justify-center items-start md:items-center w-full md:space-x-4 mt-16 md:mt-20 lg:mt-24">
+    <div className="flex flex-col md:flex-row justify-center items-start md:items-center w-full md:space-x-4 mt-16 md:mt-20 lg:mt-24 scrollbar-thin">
       <CollectionCard
         title="Create Collection"
         description="Mint cNFTs to a new or existing collection."
@@ -29,7 +29,6 @@ export default function CollectionCards() {
   );
 }
 
-
 function CollectionCard({
   title,
   description,
@@ -47,7 +46,8 @@ function CollectionCard({
       </h5>
       <p className="font-normal text-white dark:text-gray-400">{description}</p>
       <button
-        className="bg-orange-500 p-2 rounded-lg font-bold"
+        className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
+                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
         onClick={() => navigate(route)}
       >
         {button_text}
