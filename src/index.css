@@ -11,6 +11,9 @@ body, html {
   padding: 0;
 }
 
+h3 { 
+color: white;
+}
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',

@@ -10,7 +10,7 @@ require("@solana/wallet-adapter-react-ui/styles.css");
 export const Wallet: FC = () => {
   return (
     <WalletModalProvider>
-      <WalletMultiButton className="wallet"> Create </WalletMultiButton>
+      <WalletMultiButton/>
     </WalletModalProvider>
   );
 };

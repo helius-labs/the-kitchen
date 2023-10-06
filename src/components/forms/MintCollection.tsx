@@ -39,6 +39,7 @@ export default function MintToCollection() {
   const { network } = useNetwork();
   const [image, setImage] = useState("");
   const [json, setJson] = useState("");
+  const [ show, setShow ] = useState(false);
   const [alert, setAlert] = useState<{
     type: "success" | "failure";
     message: JSX.Element;
@@ -47,7 +48,7 @@ export default function MintToCollection() {
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [batchAddresses, setBatchAddresses] = useState<string>("");
   const [mintOption, setMintOption] = useState("single-address"); // Default to "Single Address"
-  const [singleAddress, setSingleAddress] = useState("");
+  const [singleAddress, setSingleAddress] = useState<string>("");
   const [mintButtonClicked, setMintButtonClicked] = useState(false);
   const [latestSuccessfulSignature, setLatestSuccessfulSignature] = useState<
     string | null
@@ -157,21 +158,13 @@ export default function MintToCollection() {
       reader.readAsArrayBuffer(file);
     });
   };
-
+ 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault();
-    setMintButtonClicked(true);
     if (activeTab !== "mint-details") {
       return;
     }
-    setAlert({
-      type: "success",
-      message: (
-        <>
-          <p> Mint Submitted! </p>
-        </>
-      ),
-    });
+    setMintButtonClicked(true);
     if (!publicKey) {
       setAlert({
         type: "failure",
@@ -183,6 +176,43 @@ export default function MintToCollection() {
       });
       return;
     }
+    let missingFields = [];
+    if (!collectionName) missingFields.push("Name");
+if (!collectionSymbol) missingFields.push("Symbol");
+if (!description) missingFields.push("Description");
+if (!imagePreview) missingFields.push("Image");
+
+if (activeTab === "mint-details") {
+    if (mintOption === "single-address" && !singleAddress) {
+        missingFields.push("Single Address");
+    }
+    if (mintOption === "batch-addresses" && !batchAddresses) {
+        missingFields.push("Batch Addresses");
+    }
+}
+
+// If there are any missing fields, raise the alert
+if (missingFields.length > 0) {
+    setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Please fill in all required fields: {missingFields.join(", ")}. </p>
+          </>
+        ),
+    });
+    setShow(true)
+    return;
+}
+    setShow(true)
+    setAlert({
+      type: "success",
+      message: (
+        <>
+          <p> Mint Submitted! </p>
+        </>
+      ),
+    });
     const imageInput = document.getElementById("file") as HTMLInputElement;
     const file = imageInput?.files?.[0];
     if (!file) {
@@ -215,8 +245,8 @@ export default function MintToCollection() {
       });
       await bundlr.ready();
       const fileBuffer = await readFileAsBuffer(file);
-      const imagePrice = await bundlr.getPrice(file!.size);
-      const fund = await bundlr.fund(imagePrice, 3);
+      const imagePrice = await bundlr.getPrice(file!.size + 1048576);
+      const fund = await bundlr.fund(imagePrice, 12);
       const tags = [{ name: "Content-Type", value: file.type }];
       const imageUpload = bundlr.createTransaction(fileBuffer, { tags });
       await imageUpload.sign();
@@ -236,6 +266,8 @@ export default function MintToCollection() {
         publicKey.toString()
       );
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
+      const jsonPrice = await bundlr.getPrice(JSON.stringify(jsonData, null, 2).length);
+      const funds = await bundlr.fund(jsonPrice, 12)
       const upload = bundlr.createTransaction(
         JSON.stringify(jsonData, null, 2),
         { tags: tagsForJson }
@@ -290,14 +322,20 @@ export default function MintToCollection() {
       for (let promiseFunction of generator) {
         try {
           const result = await promiseFunction();
-          console.log("Minting API Response:", result);
           successfulMintsCounter++;
           if (result.signature) {
             setLatestSuccessfulSignature(result.signature);
             setSuccessfulSignatures((prev) => [...prev, result.signature]);
           }
         } catch (error) {
-          console.log("Minting API Error:", error);
+          setAlert({
+            type: "failure",
+            message: (
+              <>
+                <p> Failed to mint.</p>
+              </>
+            ),
+          });        
         } finally {
           setShowAlert(true);
           setSuccessfulMints(successfulMintsCounter);
@@ -415,7 +453,6 @@ export default function MintToCollection() {
                         id="file"
                         accept=".png, .jpeg, .gif"
                         onChange={onImageChange}
-                        required={activeTab === "details"}
                       />
                       <label
                         htmlFor="file"
@@ -445,7 +482,6 @@ export default function MintToCollection() {
                       className="bg-black border h-8 border-gray-300 border-opacity-50 text-white text-sm rounded-lg hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                       placeholder="e.g: Helius Hackers"
                       value={collectionName}
-                      required={activeTab === "details"}
                     />
                   </div>
 
@@ -465,7 +501,6 @@ export default function MintToCollection() {
                       className="bg-black border h-8 border-gray-300 border-opacity-50 text-white text-sm rounded-lg hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                       placeholder="eg: HH"
                       value={collectionSymbol}
-                      required={activeTab === "details"}
                     />
                   </div>
                   <div className="relative w-full my-2">
@@ -509,7 +544,6 @@ export default function MintToCollection() {
                       onChange={(e) => setDescription(e.target.value)}
                       className="scrollbar-thin block p-2.5 w-full text-sm text-white bg-black rounded-lg border border-gray-300 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                       placeholder='e.g: "Helius Hackers is a community of hackers who are passionate about building on Solana."'
-                      required={activeTab === "details"}
                     />
                   </div>
                 </div>
@@ -704,7 +738,7 @@ export default function MintToCollection() {
                         htmlFor="singleAddress"
                         className="block text-white font-bold text-md my-2"
                       >
-                        Single Address
+                        Mint to Addresses:
                       </label>
                       <input
                         type="text"
@@ -723,7 +757,7 @@ export default function MintToCollection() {
                         htmlFor="batchAddresses"
                         className="block text-white font-bold text-md my-1"
                       >
-                        Batch Addresses (comma or space separated)
+                        Mint to Addresses: (comma or space separated)
                       </label>
                       <textarea
                         id="batchAddresses"
@@ -734,7 +768,7 @@ export default function MintToCollection() {
                       />
                       <h3 className="text-md font-bold my-1">
                         {" "}
-                        Batch File (.json or .csv){" "}
+                        Import Batch File (.json or .csv){" "}
                       </h3>
                       <div className="relative hover:border-orange-600 transition-colors border border-gray-300 border-opacity-50 rounded-lg">
                         <input
@@ -799,7 +833,7 @@ export default function MintToCollection() {
       {showAlert && latestSuccessfulSignature && (
         <Alert
           color="success"
-          className="w-96 flex justify-center m-auto items-center overflow-visible my-4 mb-8 z-50"
+          className="w-96 flex justify-center m-auto items-center overflow-visible my-4 bottom-20 relative mb-8 z-50"
           onDismiss={() => {
             setShowAlert(false);
             setSuccessfulMints(0);
@@ -823,6 +857,22 @@ export default function MintToCollection() {
           </span>
         </Alert>
       )}
+      
+{alert && show && (
+    <Alert
+        color={alert.type}
+        onDismiss={() => setAlert(null)}
+        className="w-96 flex justify-center items-center overflow-visible my-4 mb-8 relative bottom-20 m-auto z-50"
+    >
+        <span>
+            <p>
+                <span className="font-sm text-center overflow-visible">
+                    {alert.message}
+                </span>
+            </p>
+        </span>
+    </Alert>
+)}
     </>
   );
 }

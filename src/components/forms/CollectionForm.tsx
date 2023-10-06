@@ -238,7 +238,30 @@ export default function CollectionForm() {
       });
       return;
     }
-    
+    if (!collectionName || !collectionSymbol || !description) {
+      const missingFields = [];
+      if (!collectionName) missingFields.push("Collection Name");
+      if (!collectionSymbol) missingFields.push("Collection Symbol");
+      if (!description) missingFields.push("Description");
+      if (!imagePreview) missingFields.push("Image");
+      setAlert({
+        type: "failure",
+        message: (
+          <>
+            <p> Please fill in all required fields: {missingFields.join(", ")}. </p>
+          </>
+        ),
+      });
+      return;
+    }
+    setAlert({
+      type: "success",
+      message: (
+        <>
+          <p> Creating collection...</p>
+        </>
+      ),
+    });
     const imageInput = document.getElementById("file") as HTMLInputElement;
     const file = imageInput?.files?.[0];
     if (!file) return;
@@ -264,8 +287,8 @@ export default function CollectionForm() {
       const tagsForJson = [{ name: "Content-Type", value: "application/json" }];
       let jsonUri = "";
     try { 
-      const imagePrice = await bundlr.getPrice(file!.size);
-      const funds = await bundlr.fund(imagePrice, 3)
+      const imagePrice = await bundlr.getPrice(file!.size + 1048576);
+      const funds = await bundlr.fund(imagePrice)
       const fileBuffer = await readFileAsBuffer(file);
       const imageUpload = bundlr.createTransaction(fileBuffer, { tags: tagsForImage })
       await imageUpload.sign()
@@ -300,7 +323,7 @@ export default function CollectionForm() {
         },
       };
       const jsonPrice = await bundlr.getPrice(JSON.stringify(jsonData, null, 2).length);
-      const fund = await bundlr.fund(jsonPrice, 3)
+      const fund = await bundlr.fund(jsonPrice, 12)
       const upload = bundlr.createTransaction(JSON.stringify(jsonData, null, 2), { tags: tagsForJson })
       await upload.sign()
       const result = await upload.upload()
@@ -379,7 +402,7 @@ export default function CollectionForm() {
   return (
     <>
       {!txn && (
-        <div className="container mx-auto max-w-screen-md p-4 my-8 md:my-0 overflow-y-auto max-h-screen mb-5">
+        <div className="container mx-auto max-w-screen-xl p-4 my-8 md:my-0 overflow-y-auto max-h-screen mb-5">
           <h2 className="text-center font-bold text-2xl mb-2">
             Step 1: Create Collection
           </h2>
@@ -389,12 +412,12 @@ export default function CollectionForm() {
               <h2 className="text-xl font-bold text-center">
                 Collection Preview
               </h2>
-              <div className="image-upload">
-                <img
-                  src={imagePreview ? imagePreview : defaultImage}
-                  alt="Preview"
-                  className="w-48 h-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
-                />
+              <div className="image-upload w-48">
+              <img
+    src={imagePreview ? imagePreview : defaultImage}
+    alt="Preview"
+    className="h-48 w-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
+/>
               </div>
               <div>
                 <h3 className="text-base font-bold mt-4">Name</h3>
@@ -459,7 +482,6 @@ export default function CollectionForm() {
                   className="bg-black border h-8 border-gray-300 border-opacity-50 text-white text-sm rounded-lg hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                   placeholder="e.g: Helius Hackers"
                   value={collectionName}
-                  required
                 />
               </div>
               <div>
@@ -476,7 +498,6 @@ export default function CollectionForm() {
                   className="bg-black border h-8 border-gray-300 border-opacity-50 text-white text-sm rounded-lg hover:border-orange-600 focus:ring-orange-600 focus:border-orange-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-orange-500 dark:focus:border-orange-500"
                   placeholder="eg: HH"
                   value={collectionSymbol}
-                  required
                 />
               </div>
               <div>
@@ -505,6 +526,7 @@ export default function CollectionForm() {
                   type="range"
                   id="royaltiesSlider"
                   min="0"
+                  defaultValue="0"
                   max="10000"
                   step="100"
                   value={royalties}
