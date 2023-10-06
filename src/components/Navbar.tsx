@@ -14,16 +14,14 @@ const Navbar: React.FC = () => {
 
   return (
     <div className="flex justify-between items-center py-1 px-2 bg-black text-white overflow-x-hidden">
-      {" "}
       <a href="/">
         <img
-          className="w-24 sm:w-1/6 max-w-full"
+          className="w-24 sm:w-32 md:w-40 lg:w-48 max-w-full"
           src="helius.png"
           alt="Helius Logo"
         />
       </a>
       <div className="flex items-center space-x-2 p-2">
-        {" "}
         <div className="flex items-center space-x-2">
           <span className="text-white font-bold">
             {isMainnet ? "Mainnet" : "Devnet"}
@@ -66,24 +64,20 @@ const Navbar: React.FC = () => {
           </div>
         </div>
         <Tooltip content="What is Compression?">
-    <a href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana" target="_blank" rel="noopener noreferrer">
-      <img className="h-10 w-10 p-1" src="question.svg" alt="What is Compression?" />
-    </a>
-  </Tooltip>
-        <Tooltip content="Docs">
-          <a href="https://docs.helius.dev/welcome/what-is-helius" target="_blank" rel="noreferrer">
-            <img className="h-10 w-10 p-1" src="docs.svg" alt="Docs" />
-          </a>
-        </Tooltip>
-        <Tooltip content="Github Repository">
-          <a href="https://github.com/helius-labs/the-kitchen" target="_blank" rel="noopener noreferrer">
-            <img
-              className="h-10 w-10 p-1"
-              src="github.svg"
-              alt="Github Repository"
-            />
-          </a>
-        </Tooltip>
+        <a href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana" target="_blank" rel="noopener noreferrer">
+          <img className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-8 lg:w-8 p-1" src="question.svg" alt="What is Compression?" />
+        </a>
+      </Tooltip>
+      <Tooltip content="Docs">
+        <a href="https://docs.helius.dev/welcome/what-is-helius" target="_blank" rel="noreferrer">
+          <img className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-8 lg:w-8 p-1" src="docs.svg" alt="Docs" />
+        </a>
+      </Tooltip>
+      <Tooltip content="Github Repository">
+        <a href="https://github.com/helius-labs/the-kitchen" target="_blank" rel="noopener noreferrer">
+          <img className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-8 lg:w-8 p-1" src="github.svg" alt="Github Repository" />
+        </a>
+      </Tooltip>
       </div>
     </div>
   );

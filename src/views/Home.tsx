@@ -1,28 +1,35 @@
-import { useEffect } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useNavigate } from 'react-router-dom'; 
 import { Wallet } from "../components/Wallet";
-
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useState, useEffect } from "react";
 function Home() {
-    const { publicKey } = useWallet();
-    const navigate = useNavigate(); 
-
-    // Redirect to /create when the wallet is connected
+    const { wallet, publicKey } = useWallet();
+    const [connected, setConnected] = useState(false);
     useEffect(() => {
-        if (publicKey) {
-            navigate('/create');
+        if (wallet?.adapter.connected) {
+            setConnected(true);
         }
-    }, [publicKey, navigate]);
-    
+    }, [wallet?.adapter.connected]);
+   
     return (
         <>
             <div className="my-12 scrollbar-thin"> 
-                <h1 className="text-4xl text-center font-semibold"> Let me cook. </h1>
+                <h1 className="text-4xl text-center font-semibold"> Mint Compressed NFTs </h1>
                 <p className="text-center justify-center w-full sm:w-4/12 px-4 sm:px-0 flex m-auto my-4 font-light">
                 Only Possible on Solana.
                 </p>                
                 <div className="p-3 w-72 my-6 m-auto justify-center flex rounded-2xl text-center font-bold"> 
-                    <Wallet />
+                {!connected && (
+                    <Wallet /> 
+                    )} 
+                    {connected && (
+                        <>
+                          <button className="bg-orange-600 p-4 rounded-2xl"> 
+                        Let me cook
+                        </button>
+                        </>
+                      
+
+                    )}
                 </div>
             </div>
         {/** 

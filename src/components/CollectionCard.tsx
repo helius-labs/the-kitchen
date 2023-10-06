@@ -10,7 +10,7 @@ interface CollectionCardProps {
 }
 export default function CollectionCards() {
   return (
-    <div className="flex flex-col md:flex-row justify-center items-start md:items-center min-h-screen w-full md:space-x-4  lg:mt-[-200px] mt-[-120px]">
+    <div className="flex flex-col md:flex-row justify-center items-start md:items-center w-full md:space-x-4 mt-16 md:mt-20 lg:mt-24">
       <CollectionCard
         title="Create Collection"
         description="Mint cNFTs to a new or existing collection."
@@ -28,6 +28,7 @@ export default function CollectionCards() {
     </div>
   );
 }
+
 
 function CollectionCard({
   title,
