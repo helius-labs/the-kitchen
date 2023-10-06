@@ -64,7 +64,7 @@ export default function ToggleForm() {
               />
               <label
                 htmlFor="toggleCollectionForm"
-                className="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer w-10"
+                className="block h-6 rounded-full bg-gray-300 cursor-pointer w-10"
               >
                 <span
                   className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${

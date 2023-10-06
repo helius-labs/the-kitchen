@@ -379,7 +379,7 @@ export default function CollectionForm() {
   return (
     <>
       {!txn && (
-        <div className="container mx-auto max-w-screen-md p-4 my-8 md:my-0">
+        <div className="container mx-auto max-w-screen-md p-4 my-8 md:my-0 overflow-y-auto max-h-screen mb-5">
           <h2 className="text-center font-bold text-2xl mb-2">
             Step 1: Create Collection
           </h2>
@@ -521,7 +521,8 @@ export default function CollectionForm() {
                 </div>
               </div>
               <button
-                className="w-full bg-orange-500 p-2 font-bold rounded-lg my-4 hover:bg-orange-600"
+               className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
+               hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
                 type="submit"
               >
                 Create
@@ -564,11 +565,10 @@ export default function CollectionForm() {
             </div>
           </div>
           {/* Go to Mint Collection Button */}
-          <button
-            onClick={handleMintCollectionNavigation}
-            className="w-full bg-orange-500 p-2 font-bold rounded-lg my-4 hover:bg-orange-600"
-          >
-            Go to Mint Collection
+          <button onClick={handleMintCollectionNavigation} className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full my-4
+                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
+                             > 
+                                         Go to Mint Collection
           </button>
         </div>
       )}
