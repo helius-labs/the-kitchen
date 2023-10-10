@@ -17,8 +17,7 @@ function Home() {
     <>
       <div className="my-12 scrollbar-thin">
         <h1 className="text-4xl text-center font-semibold">
-          {" "}
-          Mint Compressed NFTs{" "}
+          {" "}Mint Compressed NFTs{" "}
         </h1>
         <p className="text-center justify-center w-full sm:w-4/12 px-4 sm:px-0 flex m-auto my-4 font-light">
           Only Possible on Solana.
@@ -30,8 +29,8 @@ function Home() {
           {wallet?.adapter.connected && (
             <>
               <button
-                className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
-                            hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
+                className="bg-off-black px-4 py-2 text-lg rounded-lg text-white font-bold w-full border border-orange
+                            hover:bg-orange-transparent active:scale-95 transform transition-transform duration-150"
                 onClick={() => navigate("/create")}
               >
                 Let me cook

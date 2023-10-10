@@ -5,7 +5,7 @@ export const theme = {
   extend: {
     colors: {
       orange: "#E84125",
-      "orange-hover": "rgb(234, 88, 12, 0.8)",
+      "orange-transparent": "rgb(234, 88, 12, 0.8)",
       "off-black": "rgb(7, 7, 7, 0.5)",
     },
   },
