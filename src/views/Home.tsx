@@ -1,15 +1,7 @@
-import { Wallet } from "../components/Wallet";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 function Home() {
-  const { wallet, publicKey } = useWallet();
-  const [connected, setConnected] = useState(false);
-  useEffect(() => {
-    if (wallet?.adapter.connected) {
-      setConnected(true);
-    }
-  }, [wallet?.adapter.connected]);
+  const { wallet } = useWallet();
 
   let navigate = useNavigate();
 

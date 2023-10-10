@@ -18,7 +18,7 @@ export default function DefaultModal() {
   
   return (
     <>
-      <Tooltip content="Menu">
+      <Tooltip content="Menu" className="bg-off-black">
         <button onClick={() => props.setOpenModal("dismissible")}>
           <img
             className="h-8 w-8 sm:h-10 sm:w-10 md:h-8 md:w-12 lg:h-10 lg:w-10 p-1"
@@ -29,7 +29,7 @@ export default function DefaultModal() {
       </Tooltip>
 
       <Modal
-        className="text-white rounded-lg"
+        className="text-white rounded-lg bg-off-black"
         dismissible
         size={"sm"}
         show={props.openModal === "dismissible"}
@@ -43,7 +43,7 @@ export default function DefaultModal() {
               href="https://www.helius.dev/blog/all-you-need-to-know-about-compression-on-solana"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-gray-700 justify-center"
+              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-orange-transparent justify-center"
             >
               What is Compression?
             </a>
@@ -51,7 +51,7 @@ export default function DefaultModal() {
               href="https://docs.helius.dev/compression-and-das-api/mint-api"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-gray-700 justify-center"
+              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-orange-transparent justify-center"
             >
               Docs
             </a>
@@ -59,12 +59,12 @@ export default function DefaultModal() {
               href="https://github.com/helius-labs/the-kitchen"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-gray-700 justify-center"
+              className="text-white text-lg font-bold text-center flex m-auto py-2 rounded-lg px-8 hover:bg-orange-transparent justify-center"
             >
               Github
             </a>
-            <div className="flex items-center space-x-2 m-auto justify-center flex-col my-2">
-              <span className="text-white font-bold">
+            <div className="flex items-center space-x-2 m-auto justify-center flex-row my-2">
+              <span className="text-white font-bold mr-2">
                 Network: {isMainnet ? "Mainnet" : "Devnet"}
               </span>
               <div className="relative inline-block w-12 align-middle select-none my-2">
