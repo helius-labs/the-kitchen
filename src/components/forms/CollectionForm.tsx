@@ -57,7 +57,7 @@ export default function CollectionForm() {
   const [mintKeyPair, setMintKeyPair] = useState<Keypair | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
-  const { publicKey, wallet, sendTransaction, wallets } = useWallet();
+  const { publicKey, wallet, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [txn, setTxn] = useState<string | null>(null);
   const [newFile, setFile] = useState();
@@ -401,7 +401,7 @@ export default function CollectionForm() {
   }, []);
   return (
     <>
-      {!txn && (
+      {!txn && wallet?.adapter.connected  && (
         <div className="container mx-auto max-w-screen-xl p-4 my-8 md:my-0 overflow-y-auto max-h-screen mb-5">
           <h2 className="text-center font-bold text-2xl mb-2">
             Step 1: Create Collection
@@ -414,10 +414,10 @@ export default function CollectionForm() {
               </h2>
               <div className="image-upload w-48">
               <img
-    src={imagePreview ? imagePreview : defaultImage}
-    alt="Preview"
-    className="h-48 w-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
-/>
+                src={imagePreview ? imagePreview : defaultImage}
+                alt="Preview"
+                className="h-48 w-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
+              />
               </div>
               <div>
                 <h3 className="text-base font-bold mt-4">Name</h3>
@@ -449,7 +449,7 @@ export default function CollectionForm() {
                 />
                 <div className="relative hover:border-orange-600 transition-colors border border-gray-300 border-opacity-50 rounded-lg">
                   <input
-                    accept=".png, .jpeg, .gif"
+                    accept=".png, .jpeg, .jpg, .gif"
                     type="file"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     id="file"
@@ -526,7 +526,6 @@ export default function CollectionForm() {
                   type="range"
                   id="royaltiesSlider"
                   min="0"
-                  defaultValue="0"
                   max="10000"
                   step="100"
                   value={royalties}
@@ -539,7 +538,7 @@ export default function CollectionForm() {
                   }}
                 />
                 <div className="absolute top-0 right-0 mt-2 text-white">
-                  {(royalties / 100).toFixed(2)}%
+                  {(royalties / 100)}%
                 </div>
               </div>
               <button
@@ -588,9 +587,8 @@ export default function CollectionForm() {
           </div>
           {/* Go to Mint Collection Button */}
           <button onClick={handleMintCollectionNavigation} className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full my-4
-                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
-                             > 
-                                         Go to Mint Collection
+                            hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"> 
+            Go to Mint Collection
           </button>
         </div>
       )}

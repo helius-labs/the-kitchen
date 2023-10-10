@@ -515,7 +515,7 @@ if (missingFields.length > 0) {
                       }}
                     />
                     <div className="absolute top-0 right-0 mt-2 text-white">
-                      {(royalties / 100).toFixed(2)}%
+                      {(royalties / 100)}%
                     </div>
                   </div>
                   <div>

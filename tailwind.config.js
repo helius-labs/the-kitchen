@@ -6,7 +6,8 @@ export const theme = {
     colors: {
       orange: "#E84125",
       "orange-transparent": "rgb(234, 88, 12, 0.8)",
-      "off-black": "rgb(7, 7, 7, 0.5)",
+      "off-black-0.5": "rgb(7, 7, 7, 0.5)",
+      "off-black": "rgb(7, 7, 7)",
     },
   },
 };
