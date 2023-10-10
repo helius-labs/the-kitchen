@@ -77,8 +77,8 @@ export default function CollectionForm() {
   const createCollection = async (
     publicKey: PublicKey | null,
     jsonUri: string
-  ) => {
-    if (!publicKey) return;
+  ): Promise<string | null> => {
+    if (!publicKey) return null;
 
     const minBalanceForMint: number = await getMinimumBalanceForRentExemptMint(connection);
 
@@ -107,6 +107,8 @@ export default function CollectionForm() {
       // Check Confirmation
       const confirmedTransaction = await connection.confirmTransaction(txid, "confirmed");
       handleConfirmation({confirmedTransaction, txid});
+
+      return txid;
     } catch (e) {
       setAlert({
         type: "failure",
@@ -117,6 +119,8 @@ export default function CollectionForm() {
         ),
       });
     }
+
+    return null;
   };
 
   const buildInstructions = async ({
