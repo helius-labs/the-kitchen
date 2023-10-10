@@ -5,6 +5,7 @@
   "proxy": "https://kitchen.helius.dev/",
   "dependencies": {
     "@bundlr-network/client": "^0.11.17",
+    "@irys/sdk": "^0.0.3",
     "@metaplex-foundation/js": "^0.19.5",
     "@metaplex-foundation/mpl-bubblegum": "^1.0.1",
     "@metaplex-foundation/mpl-token-metadata": "^2.5.2",
