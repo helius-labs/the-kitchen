@@ -31,7 +31,7 @@ function Home() {
             <>
               <button
                 className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full 
-                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
+                            hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
                 onClick={() => navigate("/create")}
               >
                 Let me cook

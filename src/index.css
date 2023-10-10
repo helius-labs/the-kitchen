@@ -313,6 +313,12 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 0;
   font-size: 18px;
 }
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  font-weight: 400;
+  border-radius: 0;
+  font-size: 18px;
+  background-color: rgb(234, 88, 12, 0.1);
+}
 
 .wallet-adapter-modal-list .wallet-adapter-button-end-icon,
 .wallet-adapter-modal-list .wallet-adapter-button-start-icon,
