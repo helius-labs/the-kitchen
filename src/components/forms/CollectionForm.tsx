@@ -12,7 +12,9 @@ import {
   TransactionInstruction,
   Connection,
   RpcResponseAndContext,
-  SignatureResult
+  SignatureResult,
+  Transaction,
+  sendAndConfirmTransaction
 } from "@solana/web3.js";
 import {
   createCreateMetadataAccountV3Instruction,
@@ -104,9 +106,8 @@ export default function CollectionForm() {
       // Execute Transaction
       const txid = await sendInstructions({mint, instructions, publicKey, connection});
       
-      // Check Confirmation
-      const confirmedTransaction = await connection.confirmTransaction(txid, "confirmed");
-      handleConfirmation({confirmedTransaction, txid});
+      // If the function gets here then the transaction was confirmed successfully 
+      setTxn(txid);
 
       return txid;
     } catch (e) {
@@ -239,29 +240,21 @@ export default function CollectionForm() {
     publicKey: PublicKey,
     connection: Connection
   }) => {
-    const latestBlockhash = await connection.getLatestBlockhash();
-    const message = new TransactionMessage({
-      payerKey: publicKey,
-      recentBlockhash: latestBlockhash.blockhash,
-      instructions,
-    }).compileToV0Message();
-    const transaction = new VersionedTransaction(message);
-    const signature = transaction.sign([mint]);
-    return await sendTransaction(transaction, connection);
-  }
+    // Initialize a transaction object with the list of instructions provided
+    const transaction = new Transaction().add(...instructions);
 
-  const handleConfirmation = ({
-    confirmedTransaction,
-    txid
-  }: {
-    confirmedTransaction: RpcResponseAndContext<SignatureResult>,
-    txid: string
-  }) => {
-    if (confirmedTransaction.value.err) {
-      setAlert({ type: "failure", message: <><p> Transaction failed. </p></> });
-    } else {
-      setTxn(txid);
-    }
+    // Add the requisite info and sign the transaction
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
+
+    transaction.feePayer = publicKey;
+
+    const signers = [mint];
+    transaction.sign(...signers);
+
+    // Send and confirm the transaction
+    return await sendAndConfirmTransaction(connection, transaction, signers);
   }
 
   const readFileAsBuffer = (file: File): Promise<Buffer> => {
@@ -329,6 +322,7 @@ export default function CollectionForm() {
       network === "mainnet"
         ? process.env.REACT_APP_MAINNET_API_URL
         : process.env.REACT_APP_DEVNET_API_URL;
+
     try {
       await window.solana.connect();
       const useProvider = wallet?.adapter as WalletConnectWalletAdapter;
