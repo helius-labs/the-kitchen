@@ -17,7 +17,7 @@ import {
 import axios, { AxiosError } from "axios";
 import { useNetwork } from "../../../src/contexts/rpc";
 import { generateJSONData } from "../../../src/utils/json";
-import { PhantomWalletAdapter, WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { WebBundlr } from "@bundlr-network/client";
 
 export default function CollectionForm() {
@@ -441,7 +441,7 @@ if (missingFields.length > 0) {
                         type="file"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         id="file"
-                        accept=".png, .jpeg, .gif"
+                        accept=".png, .jpeg, .jpg, .gif"
                         onChange={onImageChange}
                       />
                       <label
@@ -515,7 +515,7 @@ if (missingFields.length > 0) {
                       }}
                     />
                     <div className="absolute top-0 right-0 mt-2 text-white">
-                      {(royalties / 100).toFixed(2)}%
+                      {(royalties / 100)}%
                     </div>
                   </div>
                   <div>

@@ -2,16 +2,21 @@ import { useState, useRef, useEffect } from "react";
 import { Label, Alert } from "flowbite-react";
 import defaultImage from "../../assets/default.jpeg";
 import { useNavigate } from "react-router-dom";
-import { useWallet, useConnection, WalletProvider } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
   Keypair,
   TransactionMessage,
   VersionedTransaction,
   SystemProgram,
   PublicKey,
+  TransactionInstruction,
+  Connection,
+  RpcResponseAndContext,
+  SignatureResult,
+  Transaction,
+  sendAndConfirmTransaction
 } from "@solana/web3.js";
 import {
-  PROGRAM_ID as MPL_TOKEN_METADATA_PROGRAM_ID,
   createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
   createSetCollectionSizeInstruction,
@@ -26,10 +31,8 @@ import {
   getAssociatedTokenAddress,
   createInitializeMintInstruction,
 } from "@solana/spl-token";
-import BigNumber from "bignumber.js";
-import { WebBundlr } from "@bundlr-network/client";
+import WebIrys from "@irys/sdk";
 import { WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import {
   getMasterEditionPDA,
   getCollectionAuthRecordPDA,
@@ -37,7 +40,7 @@ import {
 } from "../../../src/utils/pdas";
 import { handleImageChange } from "../../../src/utils/forms";
 import { useNetwork } from "../../../src/contexts/rpc";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { get } from "http";
 
 export default function CollectionForm() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -57,146 +60,55 @@ export default function CollectionForm() {
   const [mintKeyPair, setMintKeyPair] = useState<Keypair | null>(null);
 
   const formRef = useRef<HTMLFormElement | null>(null);
-  const { publicKey, wallet, sendTransaction, wallets } = useWallet();
+  const { publicKey, wallet, sendTransaction } = useWallet();
   const { connection } = useConnection();
   const [txn, setTxn] = useState<string | null>(null);
   const [newFile, setFile] = useState();
   const onImageChange = handleImageChange(setImagePreview);
-  const [jsonUri, setJsonUri ] = useState<string | null>(null);
+  const [jsonUri, setJsonUri ] = useState<string>();
   const navigate = useNavigate();
   const handleMintCollectionNavigation = () => {
     navigate("/mint-cnft-collection", {
       state: { mint: mintKeyPair?.publicKey.toString() },
     });
   };
+
+  const mainnetPubkey = "HnT5KVAywGgQDhmh6Usk4bxRg4RwKxCK4jmECyaDth5R";
+  const devnetPubkey = "2LbAtCJSaHqTnP9M5QSjvAMXk79RNLusFspFN5Ew67TC";
+
   const createCollection = async (
     publicKey: PublicKey | null,
     jsonUri: string
-  ) => {
-    if (!publicKey) {
-      return;
-    }
+  ): Promise<string | null> => {
+    if (!publicKey) return null;
+
+    const minBalanceForMint: number = await getMinimumBalanceForRentExemptMint(connection);
+
     try {
-      const mint = Keypair.generate();
+      // Generate Keys and Addresses
+      const mint: Keypair = Keypair.generate();
       setMintKeyPair(mint);
-      let ata = await getAssociatedTokenAddress(mint.publicKey, publicKey);
-      let newAuthorityAddress =
-        network === "mainnet"
-          ? "HnT5KVAywGgQDhmh6Usk4bxRg4RwKxCK4jmECyaDth5R"
-          : "2LbAtCJSaHqTnP9M5QSjvAMXk79RNLusFspFN5Ew67TC";
-      let newAuthority = new PublicKey(newAuthorityAddress);
-      let tokenMetadataPubkey = await getMetadataPDA(mint.publicKey);
-      let masterEditionPubkey = await getMasterEditionPDA(mint.publicKey);
-      let collectionAuthorityPda = await getCollectionAuthRecordPDA(
+
+      let ata: PublicKey = await getAssociatedTokenAddress(mint.publicKey, publicKey);
+      let newAuthority: PublicKey = new PublicKey(network === "mainnet" ? mainnetPubkey : devnetPubkey);
+      let tokenMetadataPubkey: PublicKey = await getMetadataPDA(mint.publicKey);
+      let masterEditionPubkey: PublicKey = await getMasterEditionPDA(mint.publicKey);
+      let collectionAuthorityPda: PublicKey = await getCollectionAuthRecordPDA(
         mint.publicKey,
         newAuthority
       );
-      let instructions = [
-        SystemProgram.createAccount({
-          fromPubkey: publicKey,
-          newAccountPubkey: mint.publicKey,
-          space: MINT_SIZE,
-          lamports: await getMinimumBalanceForRentExemptMint(connection),
-          programId: TOKEN_PROGRAM_ID,
-        }),
-        // init mint
-        createInitializeMintInstruction(
-          mint.publicKey, // mint pubkey
-          0,
-          publicKey,
-          publicKey,
-          TOKEN_PROGRAM_ID
-        ),
-        createAssociatedTokenAccountInstruction(
-          publicKey, // payer
-          ata, // ata
-          publicKey, // owner
-          mint.publicKey,
-          TOKEN_PROGRAM_ID // mint
-        ),
-        createMintToCheckedInstruction(mint.publicKey, ata, publicKey, 1, 0),
-        createCreateMetadataAccountV3Instruction(
-          {
-            metadata: tokenMetadataPubkey,
-            mint: mint.publicKey,
-            mintAuthority: publicKey,
-            payer: publicKey,
-            updateAuthority: publicKey,
-          },
-          {
-            createMetadataAccountArgsV3: {
-              data: {
-                name: collectionName.toString(),
-                symbol: collectionSymbol.toString(),
-                uri: jsonUri,
-                sellerFeeBasisPoints: Number(royalties),
-                creators: [{ address: publicKey, verified: true, share: 100 }],
-                collection: null,
-                uses: null,
-              },
-              isMutable: true,
-              collectionDetails: null,
-            },
-          }
-        ),
-        createCreateMasterEditionV3Instruction(
-          {
-            edition: masterEditionPubkey,
-            mint: mint.publicKey,
-            updateAuthority: publicKey,
-            mintAuthority: publicKey,
-            payer: publicKey,
-            metadata: tokenMetadataPubkey,
-          },
-          {
-            createMasterEditionArgs: {
-              maxSupply: 0,
-            },
-          }
-        ),
-        createSetCollectionSizeInstruction(
-          {
-            collectionMetadata: tokenMetadataPubkey,
-            collectionAuthority: publicKey,
-            collectionMint: mint.publicKey,
-          },
-          {
-            setCollectionSizeArgs: { size: 0 },
-          }
-        ),
-        createApproveCollectionAuthorityInstruction({
-          metadata: tokenMetadataPubkey,
-          mint: mint.publicKey,
-          collectionAuthorityRecord: collectionAuthorityPda,
-          updateAuthority: publicKey,
-          newCollectionAuthority: newAuthority,
-          payer: publicKey,
-        }),
-      ];
-      let latestBlockhash = await connection.getLatestBlockhash();
-      const message = new TransactionMessage({
-        payerKey: publicKey,
-        recentBlockhash: latestBlockhash.blockhash,
-        instructions,
-      }).compileToV0Message();
-      const transaction = new VersionedTransaction(message);
-      const signature = transaction.sign([mint]);
-      const txid = await sendTransaction(transaction, connection);
-      const confirmedTransaction = await connection.confirmTransaction(
-        txid,
-        "confirmed"
-      );
-      if (confirmedTransaction.value.err) {
-        setAlert({
-          type: "failure",
-          message: (
-            <>
-              <p> Transaction failed. </p>
-            </>
-          ),
-        });
-      }
+
+      // Construct Instructions
+      const instructions = await buildInstructions({
+        mint, ata, publicKey, newAuthority, tokenMetadataPubkey, masterEditionPubkey, collectionAuthorityPda, minBalanceForMint
+      });
+
+      // Execute Transaction
+      const txid = await sendInstructions({mint, instructions, publicKey, connection});
+      
+      // If the function gets here then the transaction was confirmed successfully 
       setTxn(txid);
+
       return txid;
     } catch (e) {
       setAlert({
@@ -208,7 +120,142 @@ export default function CollectionForm() {
         ),
       });
     }
+
+    return null;
   };
+
+  const buildInstructions = async ({
+    mint,
+    ata,
+    publicKey,
+    newAuthority,
+    tokenMetadataPubkey,
+    masterEditionPubkey,
+    collectionAuthorityPda,
+    minBalanceForMint
+  }: {
+    mint: Keypair,
+    ata: PublicKey,
+    publicKey: PublicKey,
+    newAuthority: PublicKey,
+    tokenMetadataPubkey: PublicKey,
+    masterEditionPubkey: PublicKey,
+    collectionAuthorityPda: PublicKey,
+    minBalanceForMint: number
+  }): Promise<TransactionInstruction[]> => {
+    let instructions = [
+      SystemProgram.createAccount({
+        fromPubkey: publicKey,
+        newAccountPubkey: mint.publicKey,
+        space: MINT_SIZE,
+        lamports: minBalanceForMint,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      // init mint
+      createInitializeMintInstruction(
+        mint.publicKey, // mint pubkey
+        0,
+        publicKey,
+        publicKey,
+        TOKEN_PROGRAM_ID
+      ),
+      createAssociatedTokenAccountInstruction(
+        publicKey, // payer
+        ata, // ata
+        publicKey, // owner
+        mint.publicKey,
+        TOKEN_PROGRAM_ID // mint
+      ),
+      createMintToCheckedInstruction(mint.publicKey, ata, publicKey, 1, 0),
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: tokenMetadataPubkey,
+          mint: mint.publicKey,
+          mintAuthority: publicKey,
+          payer: publicKey,
+          updateAuthority: publicKey,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name: collectionName.toString(),
+              symbol: collectionSymbol.toString(),
+              uri: jsonUri!,
+              sellerFeeBasisPoints: Number(royalties),
+              creators: [{ address: publicKey, verified: true, share: 100 }],
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        }
+      ),
+      createCreateMasterEditionV3Instruction(
+        {
+          edition: masterEditionPubkey,
+          mint: mint.publicKey,
+          updateAuthority: publicKey,
+          mintAuthority: publicKey,
+          payer: publicKey,
+          metadata: tokenMetadataPubkey,
+        },
+        {
+          createMasterEditionArgs: {
+            maxSupply: 0,
+          },
+        }
+      ),
+      createSetCollectionSizeInstruction(
+        {
+          collectionMetadata: tokenMetadataPubkey,
+          collectionAuthority: publicKey,
+          collectionMint: mint.publicKey,
+        },
+        {
+          setCollectionSizeArgs: { size: 0 },
+        }
+      ),
+      createApproveCollectionAuthorityInstruction({
+        metadata: tokenMetadataPubkey,
+        mint: mint.publicKey,
+        collectionAuthorityRecord: collectionAuthorityPda,
+        updateAuthority: publicKey,
+        newCollectionAuthority: newAuthority,
+        payer: publicKey,
+      }),
+    ];
+
+    return instructions;
+  }
+
+  const sendInstructions = async ({
+    mint, 
+    instructions, 
+    publicKey, 
+    connection
+  }: {
+    mint: Keypair,
+    instructions: TransactionInstruction[],
+    publicKey: PublicKey,
+    connection: Connection
+  }) => {
+    // Initialize a transaction object with the list of instructions provided
+    const transaction = new Transaction().add(...instructions);
+
+    // Add the requisite info and sign the transaction
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
+
+    transaction.feePayer = publicKey;
+
+    const signers = [mint];
+    transaction.sign(...signers);
+
+    // Send and confirm the transaction
+    return await sendAndConfirmTransaction(connection, transaction, signers);
+  }
 
   const readFileAsBuffer = (file: File): Promise<Buffer> => {
     return new Promise((resolve, reject) => {
@@ -275,12 +322,18 @@ export default function CollectionForm() {
       network === "mainnet"
         ? process.env.REACT_APP_MAINNET_API_URL
         : process.env.REACT_APP_DEVNET_API_URL;
+
     try {
       await window.solana.connect();
       const useProvider = wallet?.adapter as WalletConnectWalletAdapter;
       await useProvider.connect();
-      const bundlr = new WebBundlr(bundlrURL, "solana", useProvider, {
-        providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
+      const bundlr = new WebIrys({
+        url: bundlrURL,
+        token: "solana",
+        key: useProvider,
+        config: {
+          providerUrl: `${providerUrl}${process.env.REACT_APP_API_KEY}`,
+        }
       });
       await bundlr.ready();
       const tagsForImage = [{ name: "Content-Type", value: file.type }];
@@ -401,7 +454,7 @@ export default function CollectionForm() {
   }, []);
   return (
     <>
-      {!txn && (
+      {!txn && wallet?.adapter.connected  && (
         <div className="container mx-auto max-w-screen-xl p-4 my-8 md:my-0 overflow-y-auto max-h-screen mb-5">
           <h2 className="text-center font-bold text-2xl mb-2">
             Step 1: Create Collection
@@ -414,10 +467,10 @@ export default function CollectionForm() {
               </h2>
               <div className="image-upload w-48">
               <img
-    src={imagePreview ? imagePreview : defaultImage}
-    alt="Preview"
-    className="h-48 w-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
-/>
+                src={imagePreview ? imagePreview : defaultImage}
+                alt="Preview"
+                className="h-48 w-48 rounded-lg mx-auto hover:opacity-80 cursor-pointer object-cover"
+              />
               </div>
               <div>
                 <h3 className="text-base font-bold mt-4">Name</h3>
@@ -449,7 +502,7 @@ export default function CollectionForm() {
                 />
                 <div className="relative hover:border-orange-600 transition-colors border border-gray-300 border-opacity-50 rounded-lg">
                   <input
-                    accept=".png, .jpeg, .gif"
+                    accept=".png, .jpeg, .jpg, .gif"
                     type="file"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     id="file"
@@ -588,9 +641,8 @@ export default function CollectionForm() {
           </div>
           {/* Go to Mint Collection Button */}
           <button onClick={handleMintCollectionNavigation} className="bg-[#E84125] px-4 py-2 text-lg rounded-lg text-white font-bold w-full my-4
-                             hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"
-                             > 
-                                         Go to Mint Collection
+                            hover:bg-orange-600 active:scale-95 transform transition-transform duration-150"> 
+            Go to Mint Collection
           </button>
         </div>
       )}

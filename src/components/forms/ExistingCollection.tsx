@@ -163,7 +163,7 @@ export default function ExistingCollectionForm() {
             </div>
             <div className="flex items-center mt-4">
               <Label className="text-white flex items-center mr-4 text-md font-bold">
-                <Tooltip content="When enabled, this will remove Helius' ability to mint new NFTs to your collection after the current mint is finished.">
+                <Tooltip className ="bg-off-black" content="When enabled, this will remove Helius' ability to mint new NFTs to your collection after the current mint is finished.">
                   <img src="/info.svg" alt="Info" className="mr-2 h-5 w-5" />
                 </Tooltip>
                 Revoke Collection Authority

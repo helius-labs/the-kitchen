@@ -13,7 +13,6 @@ import Header from "./components/Header";
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
-  WalletConnectWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { Connection } from "@solana/web3.js";
 import ToggleForm from "./components/forms/Forms";
@@ -38,7 +37,8 @@ function MainApp() {
   }, [network]);
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [connection] // Updated the dependency array
+    //eslint-disable-next-line 
+    [connection]
   );
 
   return (
